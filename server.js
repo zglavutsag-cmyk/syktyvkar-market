@@ -1,12 +1,26 @@
+const express = require('express');
+const path = require('path');
+const cors = require('cors');
+const multer = require('multer');
+const fs = require('fs');
+const Database = require('better-sqlite3');
+
 const app = express();
-// ============================================
-// НАСТРОЙКИ
-// ============================================
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
+
+// Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.use(express.urlencoded({ extended: true }));
 
+// Раздача статических файлов (HTML, CSS, JS, картинки)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Главный маршрут: отдаём index.html при заходе на корень сайта
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 // ============================================
 // НАСТРОЙКА ЗАГРУЗКИ ФОТО (Multer)
 // ============================================
