@@ -1,0 +1,4 @@
+   node_modules/
+   .env
+   market.db
+   public/uploads/
