@@ -1,4 +1,4 @@
-   node_modules/
-   .env
-   market.db
-   public/uploads/
+   *.db
+   *.db-shm
+   *.db-wal
+   data/
