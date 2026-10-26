@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Мой профиль | Сыктывкар Барахолка</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        body { background: #f5f5f7; color: #1c1c1e; padding-bottom: 70px; }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .back-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        .header h1 { font-size: 18px; font-weight: 700; }
+        
+        .profile-card {
+            background: white;
+            margin: 20px;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: white;
+            overflow: hidden;
+        }
+        .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .profile-name { font-size: 22px; font-weight: 700; margin-bottom: 5px; }
+        .profile-username { font-size: 14px; color: #999; margin-bottom: 5px; }
+        .profile-id { font-size: 12px; color: #bbb; font-family: monospace; }
+        
+        .menu-section {
+            background: white;
+            margin: 0 20px 20px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            text-decoration: none;
+            color: #1c1c1e;
+            transition: background 0.2s;
+        }
+        .menu-item:last-child { border-bottom: none; }
+        .menu-item:hover { background: #f8f9ff; }
+        .menu-icon { font-size: 24px; margin-right: 15px; }
+        .menu-text { flex: 1; font-size: 16px; }
+        .menu-arrow { color: #ccc; font-size: 20px; }
+        .menu-item.admin { background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%); }
+        .menu-item.admin .menu-text { font-weight: 700; color: #333; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 0 20px 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px 10px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .stat-value { font-size: 24px; font-weight: 700; color: #667eea; }
+        .stat-label { font-size: 12px; color: #999; margin-top: 4px; }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+        .nav-btn {
+            background: none;
+            border: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            color: #999;
+            font-size: 11px;
+            padding: 5px 10px;
+        }
+        .nav-btn.active { color: #667eea; }
+        .nav-btn .icon { font-size: 22px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <button class="back-btn" onclick="window.location.href='/index.html'">←</button>
+    <h1>Мой профиль</h1>
+</div>
+
+<div class="profile-card">
+    <div class="profile-avatar" id="profileAvatar">
+        <span id="avatarPlaceholder"></span>
+    </div>
+    <div class="profile-name" id="profileName">Загрузка...</div>
+    <div class="profile-username" id="profileUsername"></div>
+    <div class="profile-id" id="profileId"></div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value" id="statMyListings">0</div>
+        <div class="stat-label">Объявлений</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" id="statFavorites">0</div>
+        <div class="stat-label">Избранное</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" id="statChats">0</div>
+        <div class="stat-label">Чатов</div>
+    </div>
+</div>
+
+<div class="menu-section">
+    <a class="menu-item" href="/my-listings.html">
+        <span class="menu-icon">📦</span>
+        <span class="menu-text">Мои объявления</span>
+        <span class="menu-arrow">›</span>
+    </a>
+    <a class="menu-item" href="/favorites.html">
+        <span class="menu-icon">❤️</span>
+        <span class="menu-text">Избранное</span>
+        <span class="menu-arrow">›</span>
+    </a>
+    <a class="menu-item" href="/chats.html">
+        <span class="menu-icon">💬</span>
+        <span class="menu-text">Мои чаты</span>
+        <span class="menu-arrow">›</span>
+    </a>
+    <a class="menu-item" href="/create.html">
+        <span class="menu-icon">➕</span>
+        <span class="menu-text">Создать объявление</span>
+        <span class="menu-arrow">›</span>
+    </a>
+    <a class="menu-item" href="/create-business.html">
+        <span class="menu-icon">🏪</span>
+        <span class="menu-text">Мой магазин</span>
+        <span class="menu-arrow">›</span>
+    </a>
+</div>
+
+<!-- Кнопка админки (показывается только владельцу) -->
+<div class="menu-section" id="adminSection" style="display: none;">
+    <a class="menu-item admin" href="/admin.html">
+        <span class="menu-icon">🛠️</span>
+        <span class="menu-text">Админ-панель</span>
+        <span class="menu-arrow">›</span>
+    </a>
+</div>
+
+<div class="bottom-nav">
+    <button class="nav-btn" onclick="window.location.href='/index.html'">
+        <span class="icon">🏠</span><span>Главная</span>
+    </button>
+    <button class="nav-btn" onclick="window.location.href='/free.html'">
+        <span class="icon">🎁</span><span>Даром</span>
+    </button>
+    <button class="nav-btn" onclick="window.location.href='/chats.html'">
+        <span class="icon">💬</span><span>Чаты</span>
+    </button>
+    <button class="nav-btn" onclick="window.location.href='/create.html'">
+        <span class="icon">➕</span><span>Создать</span>
+    </button>
+    <button class="nav-btn active">
+        <span class="icon">👤</span><span>Профиль</span>
+    </button>
+</div>
+
+<script>
+// ==========================================
+// ДАННЫЕ ПОЛЬЗОВАТЕЛЯ ИЗ MAX
+// ==========================================
+let currentUserId = 'demo_user';
+let currentUser = { firstName: 'Гость', photoUrl: null, username: null };
+
+// ⚠️ ЗАМЕНИ НА СВОЙ MAX USER ID (узнаешь после первого входа)
+const ADMIN_USER_ID = 'max_123456789'; // <-- Сюда вставь свой ID
+
+if (window.Telegram && window.Telegram.WebApp) {
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        const user = tg.initDataUnsafe.user;
+        currentUserId = 'max_' + user.id;
+        currentUser = {
+            firstName: user.first_name || 'Пользователь',
+            lastName: user.last_name || '',
+            photoUrl: user.photo_url || null,
+            username: user.username || null
+        };
+        localStorage.setItem('telegramId', currentUserId);
+        localStorage.setItem('userName', currentUser.firstName);
+        if (currentUser.photoUrl) localStorage.setItem('userPhoto', currentUser.photoUrl);
+    }
+} else if (localStorage.getItem('telegramId')) {
+    currentUserId = localStorage.getItem('telegramId');
+    currentUser.firstName = localStorage.getItem('userName') || 'Пользователь';
+    currentUser.photoUrl = localStorage.getItem('userPhoto');
+}
+
+// Отображаем профиль
+document.getElementById('profileName').textContent = currentUser.firstName + (currentUser.lastName ? ' ' + currentUser.lastName : '');
+if (currentUser.username) document.getElementById('profileUsername').textContent = '@' + currentUser.username;
+document.getElementById('profileId').textContent = 'ID: ' + currentUserId;
+
+const avatarEl = document.getElementById('profileAvatar');
+if (currentUser.photoUrl) {
+    avatarEl.innerHTML = `<img src="${currentUser.photoUrl}" alt="Avatar">`;
+} else {
+    avatarEl.innerHTML = `<span>${currentUser.firstName.charAt(0).toUpperCase()}</span>`;
+}
+
+// Показываем кнопку админки только владельцу
+if (currentUserId === ADMIN_USER_ID) {
+    document.getElementById('adminSection').style.display = 'block';
+}
+
+// Загружаем статистику
+async function loadStats() {
+    try {
+        const [listingsRes, favRes, chatsRes] = await Promise.all([
+            fetch(`/api/my-listings?telegramId=${currentUserId}`),
+            fetch(`/api/favorites?telegramId=${currentUserId}`),
+            fetch(`/api/chats?telegramId=${currentUserId}`)
+        ]);
+        const listings = await listingsRes.json();
+        const favs = await favRes.json();
+        const chats = await chatsRes.json();
+        
+        document.getElementById('statMyListings').textContent = listings.length || 0;
+        document.getElementById('statFavorites').textContent = favs.length || 0;
+        document.getElementById('statChats').textContent = chats.length || 0;
+    } catch (e) { console.error(e); }
+}
+
+loadStats();
+
+// Выводим ID в консоль для удобства (чтобы узнать свой ID)
+console.log('Твой MAX User ID:', currentUserId);
+alert('Твой ID: ' + currentUserId + '\n\nСкопируй его и вставь в поле ADMIN_USER_ID в коде profile.html');
+</script>
+
+</body>
+</html>
