@@ -4,144 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Сыктывкар Барахолка</title>
+    <!-- Официальная библиотека MAX Bridge -->
+    <script src="https://unpkg.com/@maxhub/max-bridge@latest/dist/max-bridge.umd.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
         body { background: #f5f5f7; color: #1c1c1e; padding-bottom: 70px; }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 20px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .header-left { display: flex; align-items: center; gap: 12px; }
-        .user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            overflow: hidden;
-            cursor: pointer;
-            font-weight: bold;
-        }
+        .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 18px; overflow: hidden; cursor: pointer; font-weight: bold; }
         .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .user-name { font-size: 15px; font-weight: 600; cursor: pointer; }
         .header h1 { font-size: 16px; font-weight: 700; }
         .header-actions { display: flex; gap: 10px; align-items: center; }
-        
-        .notif-btn {
-            position: relative;
-            background: rgba(255,255,255,0.2);
-            border: none;
-            font-size: 22px;
-            cursor: pointer;
-            padding: 6px 10px;
-            border-radius: 8px;
-        }
-        .notif-badge {
-            position: absolute;
-            top: -4px;
-            right: -4px;
-            background: #ff3b30;
-            color: white;
-            border-radius: 50%;
-            padding: 2px 6px;
-            font-size: 11px;
-            font-weight: bold;
-            min-width: 18px;
-            text-align: center;
-            display: none;
-        }
-        
-        .notif-dropdown {
-            display: none;
-            position: absolute;
-            top: 60px;
-            right: 10px;
-            width: 320px;
-            max-height: 450px;
-            overflow-y: auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-            z-index: 1000;
-        }
+        .notif-btn { position: relative; background: rgba(255,255,255,0.2); border: none; font-size: 22px; cursor: pointer; padding: 6px 10px; border-radius: 8px; }
+        .notif-badge { position: absolute; top: -4px; right: -4px; background: #ff3b30; color: white; border-radius: 50%; padding: 2px 6px; font-size: 11px; font-weight: bold; min-width: 18px; text-align: center; display: none; }
+        .notif-dropdown { display: none; position: absolute; top: 60px; right: 10px; width: 320px; max-height: 450px; overflow-y: auto; background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 1000; }
         .notif-dropdown.show { display: block; }
-        .notif-header {
-            padding: 12px 15px;
-            border-bottom: 1px solid #eee;
-            font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: white;
-            border-radius: 12px 12px 0 0;
-        }
+        .notif-header { padding: 12px 15px; border-bottom: 1px solid #eee; font-weight: 600; display: flex; justify-content: space-between; align-items: center; background: white; border-radius: 12px 12px 0 0; }
         .notif-header button { background: none; border: none; color: #667eea; cursor: pointer; font-size: 13px; }
         .notif-item { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; }
         .notif-item.unread { background: #f0f4ff; }
         .notif-time { font-size: 11px; color: #999; margin-bottom: 4px; }
         .notif-text { font-size: 14px; color: #333; }
         .notif-empty { padding: 30px; text-align: center; color: #999; }
-        
         .search-bar { padding: 15px 20px; background: white; }
-        .search-bar input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 15px;
-            outline: none;
-        }
+        .search-bar input { width: 100%; padding: 12px 15px; border: 1px solid #e0e0e0; border-radius: 10px; font-size: 15px; outline: none; }
         .search-bar input:focus { border-color: #667eea; }
-        
-        .categories {
-            display: flex;
-            overflow-x: auto;
-            padding: 15px 20px;
-            gap: 10px;
-            background: white;
-            border-bottom: 1px solid #eee;
-        }
+        .categories { display: flex; overflow-x: auto; padding: 15px 20px; gap: 10px; background: white; border-bottom: 1px solid #eee; }
         .categories::-webkit-scrollbar { display: none; }
-        .cat-btn {
-            flex-shrink: 0;
-            padding: 8px 16px;
-            background: #f0f0f5;
-            border: none;
-            border-radius: 20px;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+        .cat-btn { flex-shrink: 0; padding: 8px 16px; background: #f0f0f5; border: none; border-radius: 20px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .cat-btn.active { background: #667eea; color: white; }
-        
-        .listings {
-            padding: 15px 20px;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-        .listing-card {
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            cursor: pointer;
-            position: relative;
-        }
+        .listings { padding: 15px 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .listing-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; position: relative; }
         .listing-img { width: 100%; height: 130px; background: #e0e0e0; object-fit: cover; }
         .listing-info { padding: 10px; }
         .listing-title { font-size: 14px; font-weight: 700; margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -151,35 +45,10 @@
         .badge-free { background: #4caf50; }
         .badge-vip { background: #ffd700; color: #333; }
         .listing-card.free { border: 2px solid #4caf50; }
-        
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-            z-index: 50;
-        }
-        .nav-btn {
-            background: none;
-            border: none;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            cursor: pointer;
-            color: #999;
-            font-size: 11px;
-            padding: 5px 10px;
-            text-decoration: none;
-        }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 50; }
+        .nav-btn { background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; color: #999; font-size: 11px; padding: 5px 10px; text-decoration: none; }
         .nav-btn.active { color: #667eea; }
         .nav-btn .icon { font-size: 22px; }
-        
         .empty-state { text-align: center; padding: 60px 20px; color: #999; grid-column: 1 / -1; }
         .empty-state .icon { font-size: 60px; margin-bottom: 15px; }
         .loading { text-align: center; padding: 40px; color: #999; grid-column: 1 / -1; }
@@ -189,59 +58,32 @@
 
 <div class="header">
     <div class="header-left">
-        <div class="user-avatar" id="userAvatar" onclick="goTo('profile')">
-            <span id="avatarPlaceholder">👤</span>
-        </div>
+        <div class="user-avatar" id="userAvatar" onclick="goTo('profile')"><span id="avatarPlaceholder">👤</span></div>
         <div class="user-name" id="userName" onclick="goTo('profile')">Гость</div>
     </div>
     <div class="header-actions">
-        <button class="notif-btn" id="notifBtn">
-            🔔
-            <span class="notif-badge" id="notifBadge">0</span>
-        </button>
+        <button class="notif-btn" id="notifBtn">🔔<span class="notif-badge" id="notifBadge">0</span></button>
     </div>
 </div>
 
 <div class="notif-dropdown" id="notifDropdown">
-    <div class="notif-header">
-        <span>Уведомления</span>
-        <button onclick="markAllRead()">Прочитать все</button>
-    </div>
+    <div class="notif-header"><span>Уведомления</span><button onclick="markAllRead()">Прочитать все</button></div>
     <div id="notifList"></div>
 </div>
 
-<div class="search-bar">
-    <input type="text" id="searchInput" placeholder="🔍 Поиск объявлений...">
-</div>
-
+<div class="search-bar"><input type="text" id="searchInput" placeholder="🔍 Поиск объявлений..."></div>
 <div class="categories" id="categories"></div>
-
-<div class="listings" id="listings">
-    <div class="loading">Загрузка...</div>
-</div>
+<div class="listings" id="listings"><div class="loading">Загрузка...</div></div>
 
 <div class="bottom-nav">
-    <a class="nav-btn active" href="/index.html">
-        <span class="icon">🏠</span><span>Главная</span>
-    </a>
-    <a class="nav-btn" href="/free.html">
-        <span class="icon">🎁</span><span>Даром</span>
-    </a>
-    <a class="nav-btn" href="/chats.html">
-        <span class="icon">💬</span><span>Чаты</span>
-    </a>
-    <a class="nav-btn" href="/create.html">
-        <span class="icon">➕</span><span>Создать</span>
-    </a>
-    <a class="nav-btn" href="/profile.html">
-        <span class="icon">👤</span><span>Профиль</span>
-    </a>
+    <a class="nav-btn active" href="/index.html"><span class="icon">🏠</span><span>Главная</span></a>
+    <a class="nav-btn" href="/free.html"><span class="icon">🎁</span><span>Даром</span></a>
+    <a class="nav-btn" href="/chats.html"><span class="icon">💬</span><span>Чаты</span></a>
+    <a class="nav-btn" href="/create.html"><span class="icon">➕</span><span>Создать</span></a>
+    <a class="nav-btn" href="/profile.html"><span class="icon">👤</span><span>Профиль</span></a>
 </div>
 
 <script>
-// ==========================================
-// ИНИЦИАЛИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ
-// ==========================================
 let currentUserId = localStorage.getItem('telegramId') || null;
 let currentUser = {
     firstName: localStorage.getItem('userName') || null,
@@ -260,168 +102,111 @@ function saveUserData() {
     if (currentUser.username) localStorage.setItem('userUsername', currentUser.username);
 }
 
-function initWebApp() {
-    let user = null;
-    let prefix = 'user_';
-    
-    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
-        user = window.Telegram.WebApp.initDataUnsafe.user;
-        prefix = 'tg_';
-        if (window.Telegram.WebApp.expand) window.Telegram.WebApp.expand();
+async function initWebApp() {
+    // 1. Пробуем официальный MAX Bridge
+    if (window.MaxBridge) {
+        try {
+            await window.MaxBridge.ready();
+            const userInfo = await window.MaxBridge.getUserInfo();
+            if (userInfo && userInfo.id) {
+                currentUserId = 'max_' + userInfo.id;
+                currentUser.firstName = userInfo.first_name || userInfo.name || 'Пользователь';
+                currentUser.lastName = userInfo.last_name || '';
+                currentUser.photoUrl = userInfo.photo_url || userInfo.avatar_url || null;
+                currentUser.username = userInfo.username || null;
+                saveUserData();
+                console.log('✅ Данные получены через MAX Bridge');
+                renderUser();
+                return true;
+            }
+        } catch (e) { console.log('⚠️ MAX Bridge ошибка:', e); }
     }
     
-    if (!user && window.MAX?.WebApp?.initDataUnsafe?.user) {
-        user = window.MAX.WebApp.initDataUnsafe.user;
-        prefix = 'max_';
-        if (window.MAX.WebApp.expand) window.MAX.WebApp.expand();
-    }
-    
-    if (user && user.id) {
-        currentUserId = prefix + user.id;
-        currentUser.firstName = user.first_name || user.name || 'Пользователь';
-        currentUser.lastName = user.last_name || '';
-        currentUser.photoUrl = user.photo_url || null;
-        currentUser.username = user.username || null;
-        saveUserData();
-        console.log('✅ Пользователь из WebApp:', currentUserId, currentUser.firstName);
-        return true;
-    }
-    
+    // 2. Fallback: если открыто в обычном браузере, используем сохранённые данные
     if (localStorage.getItem('telegramId')) {
-        currentUserId = localStorage.getItem('telegramId');
-        currentUser.firstName = localStorage.getItem('userName') || 'Гость';
-        console.log('ℹ️ Используем сохранённые данные:', currentUserId);
+        console.log('ℹ️ Используем сохранённые данные из браузера');
+        renderUser();
         return true;
     }
     
+    // 3. Если совсем ничего нет, спрашиваем имя
+    const name = prompt('👋 Как вас зовут?');
+    if (name && name.trim()) {
+        currentUser.firstName = name.trim();
+        currentUserId = 'user_' + Date.now();
+        saveUserData();
+        location.reload();
+    } else {
+        currentUser.firstName = 'Гость';
+        currentUserId = 'guest_' + Date.now();
+        saveUserData();
+    }
+    renderUser();
     return false;
 }
 
-function askUserName() {
-    if (!currentUser.firstName || currentUser.firstName === 'Гость') {
-        const name = prompt('👋 Как вас зовут?\n(это имя будет видно другим пользователям)');
-        if (name && name.trim()) {
-            currentUser.firstName = name.trim();
-            if (!currentUserId) currentUserId = 'user_' + Date.now();
-            saveUserData();
-            location.reload();
-        } else {
-            currentUser.firstName = 'Гость';
-            if (!currentUserId) currentUserId = 'guest_' + Date.now();
-            saveUserData();
-        }
-    }
-}
-
-const gotFromWebApp = initWebApp();
-if (!gotFromWebApp) askUserName();
-
 function renderUser() {
+    document.getElementById('userName').textContent = currentUser.firstName || 'Гость';
     const avatarEl = document.getElementById('userAvatar');
-    const nameEl = document.getElementById('userName');
-    nameEl.textContent = currentUser.firstName || 'Гость';
     if (currentUser.photoUrl) {
         avatarEl.innerHTML = `<img src="${currentUser.photoUrl}" alt="Avatar">`;
     } else {
-        const initial = (currentUser.firstName || 'Г').charAt(0).toUpperCase();
-        avatarEl.innerHTML = `<span>${initial}</span>`;
+        avatarEl.innerHTML = `<span>${(currentUser.firstName || 'Г').charAt(0).toUpperCase()}</span>`;
     }
 }
-renderUser();
 
-// ==========================================
-// НАВИГАЦИЯ
-// ==========================================
 function goTo(page) {
-    const pages = {
-        'home': '/index.html',
-        'free': '/free.html',
-        'business': '/business.html',
-        'chats': '/chats.html',
-        'create': '/create.html',
-        'profile': '/profile.html',
-        'my': '/my-listings.html'
-    };
+    const pages = { 'home': '/index.html', 'free': '/free.html', 'chats': '/chats.html', 'create': '/create.html', 'profile': '/profile.html', 'my': '/my-listings.html' };
     if (pages[page]) window.location.href = pages[page];
 }
 
-// ==========================================
-// КАТЕГОРИИ (с кэшем на 1 час)
-// ==========================================
 async function loadCategories() {
     const cached = localStorage.getItem('categories');
     const cachedTime = localStorage.getItem('categoriesTime');
-    const oneHour = 60 * 60 * 1000;
-    
-    if (cached && cachedTime && (Date.now() - parseInt(cachedTime)) < oneHour) {
+    if (cached && cachedTime && (Date.now() - parseInt(cachedTime)) < 3600000) {
         categories = JSON.parse(cached);
-        console.log('📦 Категории из кэша');
     } else {
         try {
             const res = await fetch('/api/categories');
             categories = await res.json();
             localStorage.setItem('categories', JSON.stringify(categories));
             localStorage.setItem('categoriesTime', Date.now().toString());
-            console.log('📡 Категории загружены с сервера');
-        } catch (e) {
-            console.error('❌ Ошибка загрузки категорий:', e);
-            return;
-        }
+        } catch (e) { return; }
     }
-    
-    const container = document.getElementById('categories');
-    container.innerHTML = `
-        <button class="cat-btn active" onclick="filterCategory(null, this)">
-            <span></span><span>Все</span>
-        </button>
-        ${categories.map(c => `
-            <button class="cat-btn" onclick="filterCategory(${c.id}, this)">
-                <span>${c.icon}</span><span>${c.name}</span>
-            </button>
-        `).join('')}
+    document.getElementById('categories').innerHTML = `
+        <button class="cat-btn active" onclick="filterCategory(null, this)"><span>🔥</span><span>Все</span></button>
+        ${categories.map(c => `<button class="cat-btn" onclick="filterCategory(${c.id}, this)"><span>${c.icon}</span><span>${c.name}</span></button>`).join('')}
     `;
 }
 
-// ==========================================
-// ОБЪЯВЛЕНИЯ
-// ==========================================
 async function loadListings() {
     const container = document.getElementById('listings');
     container.innerHTML = '<div class="loading">Загрузка...</div>';
-    
     try {
         const search = document.getElementById('searchInput').value;
         let url = '/api/listings?city=Сыктывкар';
         if (currentCategory) url += `&category=${currentCategory}`;
         if (search) url += `&search=${encodeURIComponent(search)}`;
-        
         const res = await fetch(url);
         const listings = await res.json();
-        
         if (listings.length === 0) {
             container.innerHTML = '<div class="empty-state"><div class="icon">📭</div><div>Объявлений пока нет</div></div>';
             return;
         }
-        
         container.innerHTML = listings.map(l => {
             const isFree = l.price === 0;
             const img = l.main_image ? `/uploads/${l.main_image}` : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23ddd" width="100" height="100"/></svg>';
-            return `
-                <div class="listing-card ${isFree ? 'free' : ''}" onclick="openListing(${l.id})">
-                    ${isFree ? '<div class="badge badge-free">БЕСПЛАТНО</div>' : ''}
-                    ${l.is_vip ? '<div class="badge badge-vip">⭐ VIP</div>' : ''}
-                    <img class="listing-img" src="${img}" loading="lazy" onerror="this.style.background='#ddd'">
-                    <div class="listing-info">
-                        <div class="listing-title">${l.title}</div>
-                        <div class="listing-price ${isFree ? 'free' : ''}">${isFree ? 'Отдам даром' : l.price.toLocaleString() + ' ₽'}</div>
-                    </div>
+            return `<div class="listing-card ${isFree ? 'free' : ''}" onclick="window.location.href='/listing.html?id=${l.id}'">
+                ${isFree ? '<div class="badge badge-free">БЕСПЛАТНО</div>' : ''}
+                ${l.is_vip ? '<div class="badge badge-vip">⭐ VIP</div>' : ''}
+                <img class="listing-img" src="${img}" loading="lazy" onerror="this.style.background='#ddd'">
+                <div class="listing-info">
+                    <div class="listing-title">${l.title}</div>
+                    <div class="listing-price ${isFree ? 'free' : ''}">${isFree ? 'Отдам даром' : l.price.toLocaleString() + ' ₽'}</div>
                 </div>
-            `;
+            </div>`;
         }).join('');
-    } catch (e) {
-        container.innerHTML = '<div class="empty-state">Ошибка загрузки</div>';
-        console.error(e);
-    }
+    } catch (e) { container.innerHTML = '<div class="empty-state">Ошибка загрузки</div>'; }
 }
 
 function filterCategory(catId, btn) {
@@ -436,39 +221,23 @@ document.getElementById('searchInput').addEventListener('input', () => {
     window.searchTimeout = setTimeout(loadListings, 500);
 });
 
-function openListing(id) {
-    window.location.href = `/listing.html?id=${id}`;
-}
-
-// ==========================================
-// УВЕДОМЛЕНИЯ
-// ==========================================
 async function loadNotifications() {
     if (!currentUserId) return;
     try {
         const res = await fetch(`/api/notifications?userId=${currentUserId}`);
         const data = await res.json();
-        
         const badge = document.getElementById('notifBadge');
         if (data.unreadCount > 0) {
             badge.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
             badge.style.display = 'block';
-        } else {
-            badge.style.display = 'none';
-        }
-        
+        } else { badge.style.display = 'none'; }
         const list = document.getElementById('notifList');
         if (!data.notifications || data.notifications.length === 0) {
             list.innerHTML = '<div class="notif-empty">Нет уведомлений 🔔</div>';
         } else {
-            list.innerHTML = data.notifications.map(n => `
-                <div class="notif-item ${!n.is_read ? 'unread' : ''}">
-                    <div class="notif-time">${new Date(n.created_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
-                    <div class="notif-text">${n.message}</div>
-                </div>
-            `).join('');
+            list.innerHTML = data.notifications.map(n => `<div class="notif-item ${!n.is_read ? 'unread' : ''}"><div class="notif-time">${new Date(n.created_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div><div class="notif-text">${n.message}</div></div>`).join('');
         }
-    } catch (e) { console.error(e); }
+    } catch (e) {}
 }
 
 document.getElementById('notifBtn').addEventListener('click', (e) => {
@@ -476,35 +245,22 @@ document.getElementById('notifBtn').addEventListener('click', (e) => {
     document.getElementById('notifDropdown').classList.toggle('show');
     loadNotifications();
 });
-
 document.addEventListener('click', (e) => {
-    const dropdown = document.getElementById('notifDropdown');
-    if (!e.target.closest('#notifDropdown') && !e.target.closest('#notifBtn')) {
-        dropdown.classList.remove('show');
-    }
+    const d = document.getElementById('notifDropdown');
+    if (!e.target.closest('#notifDropdown') && !e.target.closest('#notifBtn')) d.classList.remove('show');
 });
-
 async function markAllRead() {
     if (!currentUserId) return;
-    await fetch('/api/notifications/read-all', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUserId })
-    });
+    await fetch('/api/notifications/read-all', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUserId }) });
     loadNotifications();
 }
 
-// ==========================================
-// СТАРТ
-// ==========================================
-console.log('🚀 Запуск приложения...');
-console.log('👤 Пользователь:', currentUserId, currentUser.firstName);
-
+// ЗАПУСК
+initWebApp();
 loadCategories();
 loadListings();
 loadNotifications();
 setInterval(loadNotifications, 30000);
 </script>
-
 </body>
 </html>
