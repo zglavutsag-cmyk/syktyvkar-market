@@ -150,6 +150,67 @@ app.get('/api/free-stuff', (req, res) => {
 
 // (Здесь можно добавить остальные роуты из твоего оригинального server.js, 
 // главное, что переменная `db` теперь определена в самом верху!)
+// ==========================================
+// АДМИН-ПАНЕЛЬ API
+// ==========================================
+
+// Статистика
+app.get('/api/admin/stats', (req, res) => {
+    const totalListings = db.prepare('SELECT COUNT(*) as count FROM listings').get().count;
+    const activeListings = db.prepare("SELECT COUNT(*) as count FROM listings WHERE status = 'active'").get().count;
+    const totalUsers = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
+    const totalCategories = db.prepare('SELECT COUNT(*) as count FROM categories').get().count;
+    res.json({ totalListings, activeListings, totalUsers, totalCategories });
+});
+
+// Все объявления
+app.get('/api/admin/listings', (req, res) => {
+    const listings = db.prepare(`
+        SELECT l.*, c.name as category_name 
+        FROM listings l LEFT JOIN categories c ON l.category_id = c.id 
+        ORDER BY l.created_at DESC
+    `).all();
+    res.json(listings);
+});
+
+// Изменить статус объявления
+app.put('/api/admin/listings/:id/status', (req, res) => {
+    const { status } = req.body;
+    db.prepare('UPDATE listings SET status = ? WHERE id = ?').run(status, req.params.id);
+    res.json({ success: true });
+});
+
+// Удалить объявление
+app.delete('/api/admin/listings/:id', (req, res) => {
+    db.prepare('DELETE FROM listings WHERE id = ?').run(req.params.id);
+    res.json({ success: true });
+});
+
+// Все пользователи
+app.get('/api/admin/users', (req, res) => {
+    const users = db.prepare('SELECT * FROM users ORDER BY created_at DESC').all();
+    res.json(users);
+});
+
+// Заблокировать пользователя (пока просто помечаем — можно добавить поле is_banned)
+app.post('/api/admin/users/:userId/block', (req, res) => {
+    // Для простоты удаляем все объявления пользователя
+    db.prepare('UPDATE listings SET status = ? WHERE user_id = ?').run('hidden', req.params.userId);
+    res.json({ success: true, message: 'Пользователь заблокирован, объявления скрыты' });
+});
+
+// Добавить категорию
+app.post('/api/admin/categories', (req, res) => {
+    const { name, icon } = req.body;
+    db.prepare('INSERT INTO categories (name, icon) VALUES (?, ?)').run(name, icon);
+    res.json({ success: true });
+});
+
+// Удалить категорию
+app.delete('/api/admin/categories/:id', (req, res) => {
+    db.prepare('DELETE FROM categories WHERE id = ?').run(req.params.id);
+    res.json({ success: true });
+});
 
 // ==========================================
 // ЗАПУСК СЕРВЕРА
