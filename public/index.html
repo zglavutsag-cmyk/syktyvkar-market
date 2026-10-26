@@ -2,115 +2,437 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Сыктывкар Барахолка</title>
-    <link rel="stylesheet" href="css/style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        body { background: #f5f5f7; color: #1c1c1e; padding-bottom: 70px; }
+        
+        /* Шапка */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header h1 { font-size: 18px; font-weight: 700; }
+        .header-actions { display: flex; gap: 10px; align-items: center; }
+        
+        /* Колокольчик уведомлений */
+        .notif-btn {
+            position: relative;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .notif-btn:hover { background: rgba(255,255,255,0.3); }
+        .notif-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #ff3b30;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+            min-width: 18px;
+            text-align: center;
+            display: none;
+        }
+        
+        /* Dropdown уведомлений */
+        .notif-dropdown {
+            display: none;
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            width: 320px;
+            max-height: 450px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        .notif-dropdown.show { display: block; }
+        .notif-header {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            border-radius: 12px 12px 0 0;
+        }
+        .notif-header button {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .notif-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .notif-item:hover { background: #f8f9ff; }
+        .notif-item.unread { background: #f0f4ff; }
+        .notif-time { font-size: 11px; color: #999; margin-bottom: 4px; }
+        .notif-text { font-size: 14px; color: #333; }
+        .notif-empty { padding: 30px; text-align: center; color: #999; }
+        
+        /* Поиск */
+        .search-bar {
+            padding: 15px 20px;
+            background: white;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+        }
+        .search-bar input:focus { border-color: #667eea; }
+        
+        /* Категории */
+        .categories {
+            display: flex;
+            overflow-x: auto;
+            padding: 15px 20px;
+            gap: 10px;
+            background: white;
+            border-bottom: 1px solid #eee;
+        }
+        .categories::-webkit-scrollbar { display: none; }
+        .cat-btn {
+            flex-shrink: 0;
+            padding: 8px 16px;
+            background: #f0f0f5;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .cat-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        /* Объявления */
+        .listings {
+            padding: 15px 20px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .listing-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            cursor: pointer;
+            transition: transform 0.2s;
+            position: relative;
+        }
+        .listing-card:hover { transform: translateY(-2px); }
+        .listing-img {
+            width: 100%;
+            height: 130px;
+            background: #e0e0e0;
+            object-fit: cover;
+        }
+        .listing-info { padding: 10px; }
+        .listing-title {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .listing-price {
+            font-size: 15px;
+            font-weight: 600;
+            color: #667eea;
+        }
+        .listing-price.free {
+            color: #4caf50;
+        }
+        
+        /* Бейджи */
+        .badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+        }
+        .badge-free { background: #4caf50; }
+        .badge-vip { background: #ffd700; color: #333; }
+        .badge-new { background: #ff3b30; }
+        
+        .listing-card.free {
+            border: 2px solid #4caf50;
+        }
+        
+        /* Нижняя навигация */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            z-index: 50;
+        }
+        .nav-btn {
+            background: none;
+            border: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            color: #999;
+            font-size: 11px;
+            padding: 5px 10px;
+        }
+        .nav-btn.active { color: #667eea; }
+        .nav-btn .icon { font-size: 22px; }
+        
+        /* Пустое состояние */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+            grid-column: 1 / -1;
+        }
+        .empty-state .icon { font-size: 60px; margin-bottom: 15px; }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            grid-column: 1 / -1;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <!-- ШАПКА -->
-        <header class="header">
-            <div class="header-top">
-                <div class="logo">
-                    <span class="logo-icon">🏙️</span>
-                    Сыктывкар
-                </div>
-                <div class="user-info">
-                    <span id="user-name">Гость</span>
-                </div>
-            </div>
-            <div class="city-selector">
-                📍 Сыктывкар
-            </div>
-        </header>
 
-        <!-- ПОИСК -->
-        <div class="search-bar">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="search-input" class="search-input" placeholder="Поиск по объявлениям...">
-        </div>
-
-        <!-- КАТЕГОРИИ -->
-        <section class="categories-section">
-            <h2 class="section-title">Категории</h2>
-            <div class="categories-grid" id="categories-grid">
-                <!-- Категории загрузятся через JS -->
-            </div>
-        </section>
-
-        <!-- ЛЕНТА ОБЪЯВЛЕНИЙ -->
-        <section class="listings-section">
-            <div class="listings-header">
-                <h2 class="section-title">Свежие объявления</h2>
-            </div>
-            <div id="listings-container">
-                <!-- Объявления загрузятся через JS -->
-            </div>
-        </section>
+<!-- Шапка -->
+<div class="header">
+    <h1>️ Сыктывкар Барахолка</h1>
+    <div class="header-actions">
+        <button class="notif-btn" id="notifBtn">
+            🔔
+            <span class="notif-badge" id="notifBadge">0</span>
+        </button>
     </div>
-
-    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
-    <!-- Добавь это в шапку сайта, рядом с другими кнопками -->
-<button id="notifBtn" style="position: relative; background: none; border: none; font-size: 24px; cursor: pointer; margin-left: 10px;">
-    🔔
-    <span id="notifBadge" style="display: none; position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; font-weight: bold;">0</span>
-</button>
-
-<!-- Выпадающее окно уведомлений (скрыто по умолчанию) -->
-<div id="notifDropdown" style="display: none; position: absolute; top: 60px; right: 20px; width: 300px; max-height: 400px; overflow-y: auto; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000;">
-    <div style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; display: flex; justify-content: space-between;">
-        Уведомления
-        <button onclick="markAllRead()" style="background: none; border: none; color: #667eea; cursor: pointer; font-size: 12px;">Прочитать все</button>
-    </div>
-    <div id="notifList" style="padding: 10px;"></div>
 </div>
-        <nav class="bottom-nav">
-        <a href="index.html" class="nav-item active">
-            <div class="nav-icon">🏠</div>
-            <div class="nav-label">Главная</div>
-        </a>
-        <a href="favorites.html" class="nav-item">
-            <div class="nav-icon">❤️</div>
-            <div class="nav-label">Избранное</div>
-        </a>
-        <a href="chats.html" class="nav-item">
-            <div class="nav-icon" style="position: relative;">
-                💬
-                <span id="unread-badge" style="display: none; position: absolute; top: -6px; right: -10px; background: #f44336; color: white; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; align-items: center; justify-content: center; padding: 0 4px;">0</span>
-            </div>
-            <div class="nav-label">Чаты</div>
-        </a>
-        <a href="create.html" class="nav-item">
-            <div class="nav-icon">➕</div>
-            <div class="nav-label">Создать</div>
-        </a>
-        <a href="my-listings.html" class="nav-item">
-            <div class="nav-icon">📋</div>
-            <div class="nav-label">Мои</div>
-        </a>
-    </nav>
 
-    <script src="js/app.js"></script>
-    <script>
-        // Обновляем имя пользователя в шапке
-        document.addEventListener('DOMContentLoaded', () => {
-            const user = JSON.parse(localStorage.getItem('user'));
-            if (user && user.first_name) {
-                document.getElementById('user-name').textContent = user.first_name;
-            }
-        });
-    </script>
-    <script>
-// Предполагаем, что userId хранится в localStorage (как в твоём основном коде)
-const currentUserId = localStorage.getItem('telegramId') || 'demo_user';
+<!-- Dropdown уведомлений -->
+<div class="notif-dropdown" id="notifDropdown">
+    <div class="notif-header">
+        <span>Уведомления</span>
+        <button onclick="markAllRead()">Прочитать все</button>
+    </div>
+    <div id="notifList"></div>
+</div>
 
-// Загрузка уведомлений при старте
+<!-- Поиск -->
+<div class="search-bar">
+    <input type="text" id="searchInput" placeholder="🔍 Поиск объявлений...">
+</div>
+
+<!-- Категории -->
+<div class="categories" id="categories"></div>
+
+<!-- Объявления -->
+<div class="listings" id="listings">
+    <div class="loading">Загрузка...</div>
+</div>
+
+<!-- Нижняя навигация -->
+<div class="bottom-nav">
+    <button class="nav-btn active" onclick="goTo('home')">
+        <span class="icon">🏠</span>
+        <span>Главная</span>
+    </button>
+    <button class="nav-btn" onclick="goTo('free')">
+        <span class="icon"></span>
+        <span>Даром</span>
+    </button>
+    <button class="nav-btn" onclick="goTo('business')">
+        <span class="icon">🏪</span>
+        <span>Бизнес</span>
+    </button>
+    <button class="nav-btn" onclick="goTo('chats')">
+        <span class="icon">💬</span>
+        <span>Чаты</span>
+    </button>
+    <button class="nav-btn" onclick="goTo('my')">
+        <span class="icon">👤</span>
+        <span>Мои</span>
+    </button>
+</div>
+
+<script>
+// ==========================================
+// ИНИЦИАЛИЗАЦИЯ
+// ==========================================
+let currentUserId = 'demo_user';
+let currentCategory = null;
+let categories = [];
+
+// Получаем ID пользователя из Telegram/MAX WebApp
+if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe?.user) {
+    const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+    currentUserId = 'tg_' + tgUser.id;
+    localStorage.setItem('telegramId', currentUserId);
+    localStorage.setItem('userName', tgUser.first_name || 'Пользователь');
+    window.Telegram.WebApp.expand();
+} else if (localStorage.getItem('telegramId')) {
+    currentUserId = localStorage.getItem('telegramId');
+}
+
+// ==========================================
+// ЗАГРУЗКА КАТЕГОРИЙ
+// ==========================================
+async function loadCategories() {
+    try {
+        const res = await fetch('/api/categories');
+        categories = await res.json();
+        const container = document.getElementById('categories');
+        container.innerHTML = `
+            <button class="cat-btn active" onclick="filterCategory(null, this)">
+                <span>🔥</span><span>Все</span>
+            </button>
+            ${categories.map(c => `
+                <button class="cat-btn" onclick="filterCategory(${c.id}, this)">
+                    <span>${c.icon}</span><span>${c.name}</span>
+                </button>
+            `).join('')}
+        `;
+    } catch (e) {
+        console.error('Ошибка загрузки категорий:', e);
+    }
+}
+
+// ==========================================
+// ЗАГРУЗКА ОБЪЯВЛЕНИЙ
+// ==========================================
+async function loadListings() {
+    const container = document.getElementById('listings');
+    container.innerHTML = '<div class="loading">Загрузка...</div>';
+    
+    try {
+        const search = document.getElementById('searchInput').value;
+        let url = '/api/listings?city=Сыктывкар';
+        if (currentCategory) url += `&category=${currentCategory}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        
+        const res = await fetch(url);
+        const listings = await res.json();
+        
+        if (listings.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="icon">📭</div>
+                    <div>Объявлений пока нет</div>
+                    <div style="margin-top: 10px; font-size: 14px;">Будь первым!</div>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = listings.map(l => {
+            const isFree = l.price === 0;
+            const img = l.main_image ? `/uploads/${l.main_image}` : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23ddd" width="100" height="100"/><text x="50" y="55" text-anchor="middle" font-size="30">📷</text></svg>';
+            return `
+                <div class="listing-card ${isFree ? 'free' : ''}" onclick="openListing(${l.id})">
+                    ${isFree ? '<div class="badge badge-free">БЕСПЛАТНО</div>' : ''}
+                    ${l.is_vip ? '<div class="badge badge-vip">⭐ VIP</div>' : ''}
+                    <img class="listing-img" src="${img}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/></svg>'">
+                    <div class="listing-info">
+                        <div class="listing-title">${l.title}</div>
+                        <div class="listing-price ${isFree ? 'free' : ''}">${isFree ? 'Отдам даром' : l.price.toLocaleString() + ' ₽'}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (e) {
+        container.innerHTML = '<div class="empty-state">Ошибка загрузки</div>';
+        console.error(e);
+    }
+}
+
+function filterCategory(catId, btn) {
+    currentCategory = catId;
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadListings();
+}
+
+document.getElementById('searchInput').addEventListener('input', () => {
+    clearTimeout(window.searchTimeout);
+    window.searchTimeout = setTimeout(loadListings, 500);
+});
+
+function openListing(id) {
+    window.location.href = `/listing.html?id=${id}`;
+}
+
+function goTo(page) {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    
+    const pages = {
+        'home': '/index.html',
+        'free': '/free.html',
+        'business': '/business.html',
+        'chats': '/chats.html',
+        'my': '/my-listings.html'
+    };
+    window.location.href = pages[page];
+}
+
+// ==========================================
+// УВЕДОМЛЕНИЯ
+// ==========================================
 async function loadNotifications() {
     try {
         const res = await fetch(`/api/notifications?userId=${currentUserId}`);
         const data = await res.json();
         
-        // Обновляем бейдж
         const badge = document.getElementById('notifBadge');
         if (data.unreadCount > 0) {
             badge.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
@@ -118,30 +440,37 @@ async function loadNotifications() {
         } else {
             badge.style.display = 'none';
         }
-
-        // Заполняем список
+        
         const list = document.getElementById('notifList');
-        if (data.notifications.length === 0) {
-            list.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">Нет уведомлений</div>';
+        if (!data.notifications || data.notifications.length === 0) {
+            list.innerHTML = '<div class="notif-empty">Нет уведомлений 🔔</div>';
         } else {
             list.innerHTML = data.notifications.map(n => `
-                <div style="padding: 10px; border-bottom: 1px solid #f0f0f0; ${n.is_read ? 'opacity: 0.6;' : 'background: #f8f9ff;'}">
-                    <div style="font-size: 13px; color: #666; margin-bottom: 4px;">${new Date(n.created_at).toLocaleString()}</div>
-                    <div style="font-size: 14px;">${n.message}</div>
+                <div class="notif-item ${!n.is_read ? 'unread' : ''}">
+                    <div class="notif-time">${new Date(n.created_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+                    <div class="notif-text">${n.message}</div>
                 </div>
             `).join('');
         }
-    } catch (e) { console.error('Ошибка загрузки уведомлений:', e); }
+    } catch (e) {
+        console.error('Ошибка загрузки уведомлений:', e);
+    }
 }
 
-// Показать/скрыть dropdown
-document.getElementById('notifBtn').addEventListener('click', () => {
+document.getElementById('notifBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
     const dropdown = document.getElementById('notifDropdown');
-    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-    if (dropdown.style.display === 'block') loadNotifications();
+    dropdown.classList.toggle('show');
+    if (dropdown.classList.contains('show')) loadNotifications();
 });
 
-// Прочитать все
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('notifDropdown');
+    if (!e.target.closest('#notifDropdown') && !e.target.closest('#notifBtn')) {
+        dropdown.classList.remove('show');
+    }
+});
+
 async function markAllRead() {
     await fetch('/api/notifications/read-all', {
         method: 'PUT',
@@ -151,11 +480,16 @@ async function markAllRead() {
     loadNotifications();
 }
 
-// Загружаем при открытии страницы
+// ==========================================
+// СТАРТ
+// ==========================================
+loadCategories();
+loadListings();
 loadNotifications();
 
-// Обновляем каждые 30 секунд (опрос сервера)
+// Автообновление уведомлений каждые 30 секунд
 setInterval(loadNotifications, 30000);
 </script>
+
 </body>
 </html>
