@@ -175,6 +175,7 @@
             color: #999;
             font-size: 11px;
             padding: 5px 10px;
+            text-decoration: none;
         }
         .nav-btn.active { color: #667eea; }
         .nav-btn .icon { font-size: 22px; }
@@ -220,26 +221,26 @@
 </div>
 
 <div class="bottom-nav">
-    <button class="nav-btn active" onclick="goTo('home')">
+    <a class="nav-btn active" href="/index.html">
         <span class="icon">🏠</span><span>Главная</span>
-    </button>
-    <button class="nav-btn" onclick="goTo('free')">
-    <span class="icon">🎁</span><span>Даром</span>
-</button>
-    <button class="nav-btn" onclick="goTo('chats')">
+    </a>
+    <a class="nav-btn" href="/free.html">
+        <span class="icon">🎁</span><span>Даром</span>
+    </a>
+    <a class="nav-btn" href="/chats.html">
         <span class="icon">💬</span><span>Чаты</span>
-    </button>
-    <button class="nav-btn" onclick="goTo('create')">
-    <span class="icon">➕</span><span>Создать</span>
-</button>
-    <button class="nav-btn" onclick="goTo('profile')">
+    </a>
+    <a class="nav-btn" href="/create.html">
+        <span class="icon">➕</span><span>Создать</span>
+    </a>
+    <a class="nav-btn" href="/profile.html">
         <span class="icon">👤</span><span>Профиль</span>
-    </button>
+    </a>
 </div>
 
 <script>
 // ==========================================
-// ИНИЦИАЛИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ (ТРОЙНОЙ FALLBACK)
+// ИНИЦИАЛИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ
 // ==========================================
 let currentUserId = localStorage.getItem('telegramId') || null;
 let currentUser = {
@@ -259,26 +260,22 @@ function saveUserData() {
     if (currentUser.username) localStorage.setItem('userUsername', currentUser.username);
 }
 
-// Попытка получить данные из WebApp
 function initWebApp() {
     let user = null;
     let prefix = 'user_';
     
-    // 1. Telegram WebApp
     if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
         user = window.Telegram.WebApp.initDataUnsafe.user;
         prefix = 'tg_';
         if (window.Telegram.WebApp.expand) window.Telegram.WebApp.expand();
     }
     
-    // 2. MAX WebApp (если есть)
     if (!user && window.MAX?.WebApp?.initDataUnsafe?.user) {
         user = window.MAX.WebApp.initDataUnsafe.user;
         prefix = 'max_';
         if (window.MAX.WebApp.expand) window.MAX.WebApp.expand();
     }
     
-    // 3. Если данные есть — используем
     if (user && user.id) {
         currentUserId = prefix + user.id;
         currentUser.firstName = user.first_name || user.name || 'Пользователь';
@@ -290,33 +287,35 @@ function initWebApp() {
         return true;
     }
     
-    console.log('ℹ️ WebApp данные не найдены');
+    if (localStorage.getItem('telegramId')) {
+        currentUserId = localStorage.getItem('telegramId');
+        currentUser.firstName = localStorage.getItem('userName') || 'Гость';
+        console.log('ℹ️ Используем сохранённые данные:', currentUserId);
+        return true;
+    }
+    
     return false;
 }
 
-// Если WebApp не сработал — спрашиваем имя (только при первом входе)
 function askUserName() {
     if (!currentUser.firstName || currentUser.firstName === 'Гость') {
         const name = prompt('👋 Как вас зовут?\n(это имя будет видно другим пользователям)');
         if (name && name.trim()) {
             currentUser.firstName = name.trim();
-            currentUserId = 'user_' + Date.now();
+            if (!currentUserId) currentUserId = 'user_' + Date.now();
             saveUserData();
-            console.log('✅ Имя сохранено:', currentUser.firstName);
             location.reload();
         } else {
             currentUser.firstName = 'Гость';
-            currentUserId = 'guest_' + Date.now();
+            if (!currentUserId) currentUserId = 'guest_' + Date.now();
             saveUserData();
         }
     }
 }
 
-// Запускаем инициализацию
 const gotFromWebApp = initWebApp();
 if (!gotFromWebApp) askUserName();
 
-// Отображаем пользователя в шапке
 function renderUser() {
     const avatarEl = document.getElementById('userAvatar');
     const nameEl = document.getElementById('userName');
@@ -356,16 +355,16 @@ async function loadCategories() {
     
     if (cached && cachedTime && (Date.now() - parseInt(cachedTime)) < oneHour) {
         categories = JSON.parse(cached);
-        console.log(' Категории из кэша');
+        console.log('📦 Категории из кэша');
     } else {
         try {
             const res = await fetch('/api/categories');
             categories = await res.json();
             localStorage.setItem('categories', JSON.stringify(categories));
             localStorage.setItem('categoriesTime', Date.now().toString());
-            console.log(' Категории загружены с сервера');
+            console.log('📡 Категории загружены с сервера');
         } catch (e) {
-            console.error(' Ошибка загрузки категорий:', e);
+            console.error('❌ Ошибка загрузки категорий:', e);
             return;
         }
     }
@@ -411,7 +410,7 @@ async function loadListings() {
                 <div class="listing-card ${isFree ? 'free' : ''}" onclick="openListing(${l.id})">
                     ${isFree ? '<div class="badge badge-free">БЕСПЛАТНО</div>' : ''}
                     ${l.is_vip ? '<div class="badge badge-vip">⭐ VIP</div>' : ''}
-                    <img class="listing-img" src="${img}" onerror="this.style.background='#ddd'">
+                    <img class="listing-img" src="${img}" loading="lazy" onerror="this.style.background='#ddd'">
                     <div class="listing-info">
                         <div class="listing-title">${l.title}</div>
                         <div class="listing-price ${isFree ? 'free' : ''}">${isFree ? 'Отдам даром' : l.price.toLocaleString() + ' ₽'}</div>
