@@ -9,7 +9,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
         body { background: #f5f5f7; color: #1c1c1e; padding-bottom: 70px; }
         
-        /* Шапка */
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -34,13 +33,13 @@
             font-size: 18px;
             overflow: hidden;
             cursor: pointer;
+            font-weight: bold;
         }
         .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .user-name { font-size: 15px; font-weight: 600; cursor: pointer; }
         .header h1 { font-size: 16px; font-weight: 700; }
         .header-actions { display: flex; gap: 10px; align-items: center; }
         
-        /* Колокольчик */
         .notif-btn {
             position: relative;
             background: rgba(255,255,255,0.2);
@@ -65,7 +64,6 @@
             display: none;
         }
         
-        /* Dropdown уведомлений */
         .notif-dropdown {
             display: none;
             position: absolute;
@@ -97,7 +95,6 @@
         .notif-text { font-size: 14px; color: #333; }
         .notif-empty { padding: 30px; text-align: center; color: #999; }
         
-        /* Поиск */
         .search-bar { padding: 15px 20px; background: white; }
         .search-bar input {
             width: 100%;
@@ -109,7 +106,6 @@
         }
         .search-bar input:focus { border-color: #667eea; }
         
-        /* Категории */
         .categories {
             display: flex;
             overflow-x: auto;
@@ -133,7 +129,6 @@
         }
         .cat-btn.active { background: #667eea; color: white; }
         
-        /* Объявления */
         .listings {
             padding: 15px 20px;
             display: grid;
@@ -158,7 +153,6 @@
         .badge-vip { background: #ffd700; color: #333; }
         .listing-card.free { border: 2px solid #4caf50; }
         
-        /* Нижняя навигация */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -231,13 +225,13 @@
         <span class="icon">🏠</span><span>Главная</span>
     </button>
     <button class="nav-btn" onclick="goTo('free')">
-        <span class="icon">🎁</span><span>Даром</span>
+        <span class="icon"></span><span>Даром</span>
     </button>
     <button class="nav-btn" onclick="goTo('chats')">
         <span class="icon">💬</span><span>Чаты</span>
     </button>
     <button class="nav-btn" onclick="goTo('create')">
-        <span class="icon">➕</span><span>Создать</span>
+        <span class="icon"></span><span>Создать</span>
     </button>
     <button class="nav-btn" onclick="goTo('profile')">
         <span class="icon">👤</span><span>Профиль</span>
@@ -246,38 +240,66 @@
 
 <script>
 // ==========================================
-// ИНИЦИАЛИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ ИЗ MAX
+// ИНИЦИАЛИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ (MAX + Telegram + Fallback)
 // ==========================================
-let currentUserId = 'demo_user';
-let currentUser = { firstName: 'Гость', photoUrl: null };
+let currentUserId = localStorage.getItem('telegramId') || 'demo_user';
+let currentUser = {
+    firstName: localStorage.getItem('userName') || 'Пользователь',
+    lastName: localStorage.getItem('userLastName') || '',
+    photoUrl: localStorage.getItem('userPhoto') || null,
+    username: localStorage.getItem('userUsername') || null
+};
 let currentCategory = null;
 let categories = [];
 
-// Получаем данные из MAX WebApp
-if (window.Telegram && window.Telegram.WebApp) {
-    const tg = window.Telegram.WebApp;
-    tg.expand();
+// Функция сохранения данных
+function saveUserData() {
+    localStorage.setItem('telegramId', currentUserId);
+    localStorage.setItem('userName', currentUser.firstName);
+    localStorage.setItem('userLastName', currentUser.lastName);
+    if (currentUser.photoUrl) localStorage.setItem('userPhoto', currentUser.photoUrl);
+    if (currentUser.username) localStorage.setItem('userUsername', currentUser.username);
+}
+
+// Пытаемся получить данные из WebApp (MAX или Telegram)
+function initWebApp() {
+    let webApp = null;
+    let user = null;
+    let prefix = 'user_';
     
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        const user = tg.initDataUnsafe.user;
-        currentUserId = 'max_' + user.id;
+    // 1. Пробуем Telegram WebApp (работает и в MAX часто)
+    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
+        webApp = window.Telegram.WebApp;
+        user = webApp.initDataUnsafe.user;
+        prefix = 'tg_';
+    }
+    
+    // 2. Если не получилось - пробуем MAX WebApp
+    if (!user && window.MAX && window.MAX.WebApp && window.MAX.WebApp.initDataUnsafe) {
+        webApp = window.MAX.WebApp;
+        user = webApp.initDataUnsafe.user;
+        prefix = 'max_';
+    }
+    
+    // 3. Если данные есть - используем их
+    if (user && user.id) {
+        currentUserId = prefix + user.id;
         currentUser = {
-            firstName: user.first_name || 'Пользователь',
+            firstName: user.first_name || user.name || 'Пользователь',
             lastName: user.last_name || '',
             photoUrl: user.photo_url || null,
             username: user.username || null
         };
+        saveUserData();
         
-        // Сохраняем в localStorage
-        localStorage.setItem('telegramId', currentUserId);
-        localStorage.setItem('userName', currentUser.firstName);
-        if (currentUser.photoUrl) localStorage.setItem('userPhoto', currentUser.photoUrl);
+        if (webApp && webApp.expand) webApp.expand();
+        console.log('✅ Пользователь определён:', currentUserId, currentUser.firstName);
+    } else {
+        console.log('ℹ️ WebApp данные не найдены, используем localStorage');
     }
-} else if (localStorage.getItem('telegramId')) {
-    currentUserId = localStorage.getItem('telegramId');
-    currentUser.firstName = localStorage.getItem('userName') || 'Пользователь';
-    currentUser.photoUrl = localStorage.getItem('userPhoto');
 }
+
+initWebApp();
 
 // Отображаем пользователя в шапке
 function renderUser() {
@@ -289,7 +311,8 @@ function renderUser() {
     if (currentUser.photoUrl) {
         avatarEl.innerHTML = `<img src="${currentUser.photoUrl}" alt="Avatar">`;
     } else {
-        avatarEl.innerHTML = `<span>${currentUser.firstName.charAt(0).toUpperCase()}</span>`;
+        const initial = currentUser.firstName.charAt(0).toUpperCase();
+        avatarEl.innerHTML = `<span>${initial}</span>`;
     }
 }
 
@@ -312,24 +335,38 @@ function goTo(page) {
 }
 
 // ==========================================
-// КАТЕГОРИИ
+// КАТЕГОРИИ (с кэшем на 1 час)
 // ==========================================
 async function loadCategories() {
-    try {
-        const res = await fetch('/api/categories');
-        categories = await res.json();
-        const container = document.getElementById('categories');
-        container.innerHTML = `
-            <button class="cat-btn active" onclick="filterCategory(null, this)">
-                <span>🔥</span><span>Все</span>
+    const cached = localStorage.getItem('categories');
+    const cachedTime = localStorage.getItem('categoriesTime');
+    const oneHour = 60 * 60 * 1000;
+    
+    if (cached && cachedTime && (Date.now() - parseInt(cachedTime)) < oneHour) {
+        categories = JSON.parse(cached);
+    } else {
+        try {
+            const res = await fetch('/api/categories');
+            categories = await res.json();
+            localStorage.setItem('categories', JSON.stringify(categories));
+            localStorage.setItem('categoriesTime', Date.now().toString());
+        } catch (e) {
+            console.error('Ошибка загрузки категорий:', e);
+            return;
+        }
+    }
+    
+    const container = document.getElementById('categories');
+    container.innerHTML = `
+        <button class="cat-btn active" onclick="filterCategory(null, this)">
+            <span>🔥</span><span>Все</span>
+        </button>
+        ${categories.map(c => `
+            <button class="cat-btn" onclick="filterCategory(${c.id}, this)">
+                <span>${c.icon}</span><span>${c.name}</span>
             </button>
-            ${categories.map(c => `
-                <button class="cat-btn" onclick="filterCategory(${c.id}, this)">
-                    <span>${c.icon}</span><span>${c.name}</span>
-                </button>
-            `).join('')}
-        `;
-    } catch (e) { console.error(e); }
+        `).join('')}
+    `;
 }
 
 // ==========================================
@@ -349,7 +386,7 @@ async function loadListings() {
         const listings = await res.json();
         
         if (listings.length === 0) {
-            container.innerHTML = '<div class="empty-state"><div class="icon"></div><div>Объявлений пока нет</div></div>';
+            container.innerHTML = '<div class="empty-state"><div class="icon">📭</div><div>Объявлений пока нет</div></div>';
             return;
         }
         
