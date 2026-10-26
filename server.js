@@ -77,6 +77,17 @@ db.exec(`
         is_read INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+    // Индексы для ускорения запросов
+db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_listings_status ON listings(status);
+    CREATE INDEX IF NOT EXISTS idx_listings_category ON listings(category_id);
+    CREATE INDEX IF NOT EXISTS idx_listings_user ON listings(user_id);
+    CREATE INDEX IF NOT EXISTS idx_listings_created ON listings(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_images_listing ON images(listing_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
+    CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(chat_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id);
+
 `);
 
 try {
