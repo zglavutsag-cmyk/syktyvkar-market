@@ -123,7 +123,7 @@ const upload = multer({ storage });
 // ==========================================
 async function sendMaxNotification(telegramId, text) {
     // ⚠️ ЗАМЕНИ НА РЕАЛЬНЫЙ ТОКЕН И URL ИЗ ПАНЕЛИ РАЗРАБОТЧИКА MAX
-    const MAX_BOT_TOKEN = process.env.MAX_BOT_TOKEN || 'ТВОЙ_ТОКЕН_БОТА_MAX';
+    const MAX_BOT_TOKEN = process.env.MAX_BOT_TOKEN || 'f9LHodD0cOKU2K_4Tw1UogdAWNd72QeVnJz__8Uf04eAuIELUBWBLsa_7VC7YpvU5Mm2Bb26NmHl3urenxSt';
     const MAX_API_URL = `https://botapi.max.ru/v1/${MAX_BOT_TOKEN}/sendMessage`;
 
     try {
