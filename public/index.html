@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Сыктывкар Барахолка</title>
-    <!-- Официальная библиотека MAX Bridge -->
-    <script src="https://unpkg.com/@maxhub/max-bridge@latest/dist/max-bridge.umd.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
         body { background: #f5f5f7; color: #1c1c1e; padding-bottom: 70px; }
@@ -15,7 +13,6 @@
         .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .user-name { font-size: 15px; font-weight: 600; cursor: pointer; }
         .header h1 { font-size: 16px; font-weight: 700; }
-        .header-actions { display: flex; gap: 10px; align-items: center; }
         .notif-btn { position: relative; background: rgba(255,255,255,0.2); border: none; font-size: 22px; cursor: pointer; padding: 6px 10px; border-radius: 8px; }
         .notif-badge { position: absolute; top: -4px; right: -4px; background: #ff3b30; color: white; border-radius: 50%; padding: 2px 6px; font-size: 11px; font-weight: bold; min-width: 18px; text-align: center; display: none; }
         .notif-dropdown { display: none; position: absolute; top: 60px; right: 10px; width: 320px; max-height: 450px; overflow-y: auto; background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 1000; }
@@ -29,7 +26,6 @@
         .notif-empty { padding: 30px; text-align: center; color: #999; }
         .search-bar { padding: 15px 20px; background: white; }
         .search-bar input { width: 100%; padding: 12px 15px; border: 1px solid #e0e0e0; border-radius: 10px; font-size: 15px; outline: none; }
-        .search-bar input:focus { border-color: #667eea; }
         .categories { display: flex; overflow-x: auto; padding: 15px 20px; gap: 10px; background: white; border-bottom: 1px solid #eee; }
         .categories::-webkit-scrollbar { display: none; }
         .cat-btn { flex-shrink: 0; padding: 8px 16px; background: #f0f0f5; border: none; border-radius: 20px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
@@ -50,15 +46,98 @@
         .nav-btn.active { color: #667eea; }
         .nav-btn .icon { font-size: 22px; }
         .empty-state { text-align: center; padding: 60px 20px; color: #999; grid-column: 1 / -1; }
-        .empty-state .icon { font-size: 60px; margin-bottom: 15px; }
         .loading { text-align: center; padding: 40px; color: #999; grid-column: 1 / -1; }
+        
+        /* Модальное окно входа */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal h2 { margin-bottom: 10px; color: #667eea; }
+        .modal p { color: #666; margin-bottom: 20px; font-size: 14px; }
+        .modal input[type="text"] {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            outline: none;
+        }
+        .modal input[type="text"]:focus { border-color: #667eea; }
+        .avatar-upload {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: white;
+            cursor: pointer;
+            overflow: hidden;
+            position: relative;
+        }
+        .avatar-upload img { width: 100%; height: 100%; object-fit: cover; }
+        .avatar-upload input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .modal button {
+            width: 100%;
+            padding: 14px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .modal button:hover { background: #5568d3; }
     </style>
 </head>
 <body>
 
+<!-- Модальное окно входа -->
+<div class="modal-overlay" id="loginModal">
+    <div class="modal">
+        <h2>👋 Добро пожаловать!</h2>
+        <p>Введите ваше имя и загрузите фото (необязательно)</p>
+        <div class="avatar-upload" id="avatarPreview">
+            <span id="avatarLetter">?</span>
+            <img id="avatarImg" style="display: none;">
+            <input type="file" id="avatarInput" accept="image/*">
+        </div>
+        <input type="text" id="nameInput" placeholder="Ваше имя" maxlength="30">
+        <button onclick="saveUser()">Войти</button>
+    </div>
+</div>
+
 <div class="header">
     <div class="header-left">
-        <div class="user-avatar" id="userAvatar" onclick="goTo('profile')"><span id="avatarPlaceholder">👤</span></div>
+        <div class="user-avatar" id="userAvatar" onclick="goTo('profile')"><span>👤</span></div>
         <div class="user-name" id="userName" onclick="goTo('profile')">Гость</div>
     </div>
     <div class="header-actions">
@@ -80,16 +159,14 @@
     <a class="nav-btn" href="/free.html"><span class="icon">🎁</span><span>Даром</span></a>
     <a class="nav-btn" href="/chats.html"><span class="icon">💬</span><span>Чаты</span></a>
     <a class="nav-btn" href="/create.html"><span class="icon">➕</span><span>Создать</span></a>
-    <a class="nav-btn" href="/profile.html"><span class="icon">👤</span><span>Профиль</span></a>
+    <a class="nav-btn" href="/profile.html"><span class="icon"></span><span>Профиль</span></a>
 </div>
 
 <script>
 let currentUserId = localStorage.getItem('telegramId') || null;
 let currentUser = {
     firstName: localStorage.getItem('userName') || null,
-    lastName: localStorage.getItem('userLastName') || '',
-    photoUrl: localStorage.getItem('userPhoto') || null,
-    username: localStorage.getItem('userUsername') || null
+    photoUrl: localStorage.getItem('userPhoto') || null
 };
 let currentCategory = null;
 let categories = [];
@@ -97,52 +174,7 @@ let categories = [];
 function saveUserData() {
     if (currentUserId) localStorage.setItem('telegramId', currentUserId);
     if (currentUser.firstName) localStorage.setItem('userName', currentUser.firstName);
-    if (currentUser.lastName) localStorage.setItem('userLastName', currentUser.lastName);
     if (currentUser.photoUrl) localStorage.setItem('userPhoto', currentUser.photoUrl);
-    if (currentUser.username) localStorage.setItem('userUsername', currentUser.username);
-}
-
-async function initWebApp() {
-    // 1. Пробуем официальный MAX Bridge
-    if (window.MaxBridge) {
-        try {
-            await window.MaxBridge.ready();
-            const userInfo = await window.MaxBridge.getUserInfo();
-            if (userInfo && userInfo.id) {
-                currentUserId = 'max_' + userInfo.id;
-                currentUser.firstName = userInfo.first_name || userInfo.name || 'Пользователь';
-                currentUser.lastName = userInfo.last_name || '';
-                currentUser.photoUrl = userInfo.photo_url || userInfo.avatar_url || null;
-                currentUser.username = userInfo.username || null;
-                saveUserData();
-                console.log('✅ Данные получены через MAX Bridge');
-                renderUser();
-                return true;
-            }
-        } catch (e) { console.log('⚠️ MAX Bridge ошибка:', e); }
-    }
-    
-    // 2. Fallback: если открыто в обычном браузере, используем сохранённые данные
-    if (localStorage.getItem('telegramId')) {
-        console.log('ℹ️ Используем сохранённые данные из браузера');
-        renderUser();
-        return true;
-    }
-    
-    // 3. Если совсем ничего нет, спрашиваем имя
-    const name = prompt('👋 Как вас зовут?');
-    if (name && name.trim()) {
-        currentUser.firstName = name.trim();
-        currentUserId = 'user_' + Date.now();
-        saveUserData();
-        location.reload();
-    } else {
-        currentUser.firstName = 'Гость';
-        currentUserId = 'guest_' + Date.now();
-        saveUserData();
-    }
-    renderUser();
-    return false;
 }
 
 function renderUser() {
@@ -155,8 +187,63 @@ function renderUser() {
     }
 }
 
+// Показываем окно входа, если пользователь не зарегистрирован
+function checkLogin() {
+    if (!currentUser.firstName || currentUser.firstName === 'Гость') {
+        document.getElementById('loginModal').classList.add('show');
+    } else {
+        renderUser();
+    }
+}
+
+// Предпросмотр аватарки
+document.getElementById('avatarInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            document.getElementById('avatarImg').src = ev.target.result;
+            document.getElementById('avatarImg').style.display = 'block';
+            document.getElementById('avatarLetter').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Обновляем букву при вводе имени
+document.getElementById('nameInput').addEventListener('input', (e) => {
+    const name = e.target.value.trim();
+    if (name) {
+        document.getElementById('avatarLetter').textContent = name.charAt(0).toUpperCase();
+    } else {
+        document.getElementById('avatarLetter').textContent = '?';
+    }
+});
+
+// Сохранение пользователя
+function saveUser() {
+    const name = document.getElementById('nameInput').value.trim();
+    if (!name) {
+        alert('Пожалуйста, введите имя');
+        return;
+    }
+    
+    currentUser.firstName = name;
+    currentUserId = 'user_' + Date.now();
+    
+    const avatarImg = document.getElementById('avatarImg');
+    if (avatarImg.style.display !== 'none' && avatarImg.src) {
+        currentUser.photoUrl = avatarImg.src;
+    }
+    
+    saveUserData();
+    document.getElementById('loginModal').classList.remove('show');
+    renderUser();
+    loadAll();
+}
+
 function goTo(page) {
-    const pages = { 'home': '/index.html', 'free': '/free.html', 'chats': '/chats.html', 'create': '/create.html', 'profile': '/profile.html', 'my': '/my-listings.html' };
+    const pages = { 'home': '/index.html', 'free': '/free.html', 'chats': '/chats.html', 'create': '/create.html', 'profile': '/profile.html' };
     if (pages[page]) window.location.href = pages[page];
 }
 
@@ -190,7 +277,7 @@ async function loadListings() {
         const res = await fetch(url);
         const listings = await res.json();
         if (listings.length === 0) {
-            container.innerHTML = '<div class="empty-state"><div class="icon">📭</div><div>Объявлений пока нет</div></div>';
+            container.innerHTML = '<div class="empty-state"><div style="font-size:60px">📭</div><div>Объявлений пока нет</div></div>';
             return;
         }
         container.innerHTML = listings.map(l => {
@@ -255,11 +342,15 @@ async function markAllRead() {
     loadNotifications();
 }
 
+async function loadAll() {
+    await loadCategories();
+    await loadListings();
+    await loadNotifications();
+}
+
 // ЗАПУСК
-initWebApp();
-loadCategories();
-loadListings();
-loadNotifications();
+checkLogin();
+if (currentUser.firstName) loadAll();
 setInterval(loadNotifications, 30000);
 </script>
 </body>
