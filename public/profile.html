@@ -4,95 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Мой профиль | Сыктывкар Барахолка</title>
+    <script src="https://unpkg.com/@maxhub/max-bridge@latest/dist/max-bridge.umd.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
         body { background: #f5f5f7; color: #1c1c1e; padding-bottom: 70px; }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px; display: flex; align-items: center; gap: 15px; }
         .back-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; text-decoration: none; }
         .header h1 { font-size: 18px; font-weight: 700; }
-        
-        .profile-card {
-            background: white;
-            margin: 20px;
-            padding: 25px;
-            border-radius: 16px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            text-align: center;
-        }
-        .profile-avatar {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin: 0 auto 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-            color: white;
-            overflow: hidden;
-            font-weight: bold;
-        }
+        .profile-card { background: white; margin: 20px; padding: 25px; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); text-align: center; }
+        .profile-avatar { width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 48px; color: white; overflow: hidden; font-weight: bold; }
         .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .profile-name { font-size: 22px; font-weight: 700; margin-bottom: 5px; }
         .profile-username { font-size: 14px; color: #999; margin-bottom: 5px; }
         .profile-id { font-size: 12px; color: #bbb; font-family: monospace; }
-        
-        .set-id-btn {
-            width: 100%;
-            padding: 12px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-            margin-top: 15px;
-            font-weight: 600;
-        }
-        .set-id-btn:hover { background: #5568d3; }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin: 0 20px 20px;
-        }
-        .stat-card {
-            background: white;
-            padding: 15px 10px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        }
+        .set-id-btn { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 15px; font-weight: 600; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 20px 20px; }
+        .stat-card { background: white; padding: 15px 10px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
         .stat-value { font-size: 24px; font-weight: 700; color: #667eea; }
         .stat-label { font-size: 12px; color: #999; margin-top: 4px; }
-        
-        .menu-section {
-            background: white;
-            margin: 0 20px 20px;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-        }
-        .menu-item {
-            display: flex;
-            align-items: center;
-            padding: 16px 20px;
-            border-bottom: 1px solid #f0f0f0;
-            cursor: pointer;
-            text-decoration: none;
-            color: #1c1c1e;
-            transition: background 0.2s;
-        }
+        .menu-section { background: white; margin: 0 20px 20px; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .menu-item { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid #f0f0f0; cursor: pointer; text-decoration: none; color: #1c1c1e; transition: background 0.2s; }
         .menu-item:last-child { border-bottom: none; }
         .menu-item:hover { background: #f8f9ff; }
         .menu-icon { font-size: 24px; margin-right: 15px; }
@@ -100,31 +31,8 @@
         .menu-arrow { color: #ccc; font-size: 20px; }
         .menu-item.admin { background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%); }
         .menu-item.admin .menu-text { font-weight: 700; color: #333; }
-        
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-        }
-        .nav-btn {
-            background: none;
-            border: none;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            cursor: pointer;
-            color: #999;
-            font-size: 11px;
-            padding: 5px 10px;
-            text-decoration: none;
-        }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
+        .nav-btn { background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; color: #999; font-size: 11px; padding: 5px 10px; text-decoration: none; }
         .nav-btn.active { color: #667eea; }
         .nav-btn .icon { font-size: 22px; }
     </style>
@@ -137,95 +45,41 @@
 </div>
 
 <div class="profile-card">
-    <div class="profile-avatar" id="profileAvatar">
-        <span id="avatarPlaceholder">?</span>
-    </div>
+    <div class="profile-avatar" id="profileAvatar"><span id="avatarPlaceholder">?</span></div>
     <div class="profile-name" id="profileName">Загрузка...</div>
     <div class="profile-username" id="profileUsername"></div>
     <div class="profile-id" id="profileId">ID: ...</div>
-    <button class="set-id-btn" id="setIdBtn"> Указать мой MAX ID</button>
+    <button class="set-id-btn" id="setIdBtn">🔑 Указать мой MAX ID вручную</button>
 </div>
 
 <div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-value" id="statMyListings">0</div>
-        <div class="stat-label">Объявлений</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-value" id="statFavorites">0</div>
-        <div class="stat-label">Избранное</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-value" id="statChats">0</div>
-        <div class="stat-label">Чатов</div>
-    </div>
+    <div class="stat-card"><div class="stat-value" id="statMyListings">0</div><div class="stat-label">Объявлений</div></div>
+    <div class="stat-card"><div class="stat-value" id="statFavorites">0</div><div class="stat-label">Избранное</div></div>
+    <div class="stat-card"><div class="stat-value" id="statChats">0</div><div class="stat-label">Чатов</div></div>
 </div>
 
 <div class="menu-section">
-    <a class="menu-item" href="/my-listings.html">
-        <span class="menu-icon">📦</span>
-        <span class="menu-text">Мои объявления</span>
-        <span class="menu-arrow">›</span>
-    </a>
-    <a class="menu-item" href="/favorites.html">
-        <span class="menu-icon">❤️</span>
-        <span class="menu-text">Избранное</span>
-        <span class="menu-arrow">›</span>
-    </a>
-    <a class="menu-item" href="/chats.html">
-        <span class="menu-icon"></span>
-        <span class="menu-text">Мои чаты</span>
-        <span class="menu-arrow">›</span>
-    </a>
-    <a class="menu-item" href="/create.html">
-        <span class="menu-icon">➕</span>
-        <span class="menu-text">Создать объявление</span>
-        <span class="menu-arrow">›</span>
-    </a>
-    <a class="menu-item" href="/create-business.html">
-        <span class="menu-icon">🏪</span>
-        <span class="menu-text">Мой магазин</span>
-        <span class="menu-arrow">›</span>
-    </a>
+    <a class="menu-item" href="/my-listings.html"><span class="menu-icon">📦</span><span class="menu-text">Мои объявления</span><span class="menu-arrow">›</span></a>
+    <a class="menu-item" href="/favorites.html"><span class="menu-icon">❤️</span><span class="menu-text">Избранное</span><span class="menu-arrow">›</span></a>
+    <a class="menu-item" href="/chats.html"><span class="menu-icon">💬</span><span class="menu-text">Мои чаты</span><span class="menu-arrow">›</span></a>
+    <a class="menu-item" href="/create.html"><span class="menu-icon">➕</span><span class="menu-text">Создать объявление</span><span class="menu-arrow">›</span></a>
 </div>
 
-<!-- Кнопка админки (показывается только владельцу) -->
 <div class="menu-section" id="adminSection" style="display: none;">
-    <a class="menu-item admin" href="/admin.html">
-        <span class="menu-icon">️</span>
-        <span class="menu-text">Админ-панель</span>
-        <span class="menu-arrow">›</span>
-    </a>
+    <a class="menu-item admin" href="/admin.html"><span class="menu-icon">🛠️</span><span class="menu-text">Админ-панель</span><span class="menu-arrow">›</span></a>
 </div>
 
 <div class="bottom-nav">
-    <a class="nav-btn" href="/index.html">
-        <span class="icon">🏠</span><span>Главная</span>
-    </a>
-    <a class="nav-btn" href="/free.html">
-        <span class="icon">🎁</span><span>Даром</span>
-    </a>
-    <a class="nav-btn" href="/chats.html">
-        <span class="icon">💬</span><span>Чаты</span>
-    </a>
-    <a class="nav-btn" href="/create.html">
-        <span class="icon">➕</span><span>Создать</span>
-    </a>
-    <a class="nav-btn active" href="/profile.html">
-        <span class="icon">👤</span><span>Профиль</span>
-    </a>
+    <a class="nav-btn" href="/index.html"><span class="icon">🏠</span><span>Главная</span></a>
+    <a class="nav-btn" href="/free.html"><span class="icon">🎁</span><span>Даром</span></a>
+    <a class="nav-btn" href="/chats.html"><span class="icon">💬</span><span>Чаты</span></a>
+    <a class="nav-btn" href="/create.html"><span class="icon">➕</span><span>Создать</span></a>
+    <a class="nav-btn active" href="/profile.html"><span class="icon">👤</span><span>Профиль</span></a>
 </div>
 
 <script>
-// ==========================================
-// НАСТРОЙКИ
-// ==========================================
-// ⚠️ ЗАМЕНИ НА СВОЙ MAX ID (без префикса max_)
-const ADMIN_USER_ID = 'max_219641344';
+const ADMIN_USER_ID = 'max_219641344'; // Твой ID для админки
 
-// ==========================================
-// ДАННЫЕ ПОЛЬЗОВАТЕЛЯ
-// ==========================================
 let currentUserId = localStorage.getItem('telegramId') || null;
 let currentUser = {
     firstName: localStorage.getItem('userName') || 'Гость',
@@ -233,38 +87,6 @@ let currentUser = {
     photoUrl: localStorage.getItem('userPhoto') || null,
     username: localStorage.getItem('userUsername') || null
 };
-
-// Попытка получить данные из WebApp (MAX или Telegram)
-function initWebApp() {
-    let user = null;
-    let prefix = 'user_';
-    
-    // Telegram WebApp
-    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
-        user = window.Telegram.WebApp.initDataUnsafe.user;
-        prefix = 'tg_';
-        if (window.Telegram.WebApp.expand) window.Telegram.WebApp.expand();
-    }
-    
-    // MAX WebApp
-    if (!user && window.MAX?.WebApp?.initDataUnsafe?.user) {
-        user = window.MAX.WebApp.initDataUnsafe.user;
-        prefix = 'max_';
-        if (window.MAX.WebApp.expand) window.MAX.WebApp.expand();
-    }
-    
-    if (user && user.id) {
-        currentUserId = prefix + user.id;
-        currentUser.firstName = user.first_name || user.name || 'Пользователь';
-        currentUser.lastName = user.last_name || '';
-        currentUser.photoUrl = user.photo_url || null;
-        currentUser.username = user.username || null;
-        saveUserData();
-        console.log('✅ Пользователь из WebApp:', currentUserId);
-        return true;
-    }
-    return false;
-}
 
 function saveUserData() {
     if (currentUserId) localStorage.setItem('telegramId', currentUserId);
@@ -274,27 +96,27 @@ function saveUserData() {
     if (currentUser.username) localStorage.setItem('userUsername', currentUser.username);
 }
 
-// Если WebApp не сработал — спрашиваем имя (только при первом входе)
-function askUserName() {
-    if (!currentUser.firstName || currentUser.firstName === 'Гость') {
-        const name = prompt('👋 Как вас зовут?');
-        if (name && name.trim()) {
-            currentUser.firstName = name.trim();
-            if (!currentUserId) currentUserId = 'user_' + Date.now();
-            saveUserData();
-            location.reload();
-        }
+async function initWebApp() {
+    if (window.MaxBridge) {
+        try {
+            await window.MaxBridge.ready();
+            const userInfo = await window.MaxBridge.getUserInfo();
+            if (userInfo && userInfo.id) {
+                currentUserId = 'max_' + userInfo.id;
+                currentUser.firstName = userInfo.first_name || userInfo.name || 'Пользователь';
+                currentUser.lastName = userInfo.last_name || '';
+                currentUser.photoUrl = userInfo.photo_url || userInfo.avatar_url || null;
+                currentUser.username = userInfo.username || null;
+                saveUserData();
+                return true;
+            }
+        } catch (e) {}
     }
+    return false;
 }
 
-// Запускаем инициализацию
-const gotFromWebApp = initWebApp();
-if (!gotFromWebApp) askUserName();
-
-// ==========================================
-// ОТОБРАЖЕНИЕ ПРОФИЛЯ
-// ==========================================
-function renderProfile() {
+async function renderProfile() {
+    await initWebApp();
     const fullName = currentUser.firstName + (currentUser.lastName ? ' ' + currentUser.lastName : '');
     document.getElementById('profileName').textContent = fullName;
     if (currentUser.username) document.getElementById('profileUsername').textContent = '@' + currentUser.username;
@@ -307,7 +129,6 @@ function renderProfile() {
         avatarEl.innerHTML = `<span>${(currentUser.firstName || '?').charAt(0).toUpperCase()}</span>`;
     }
 
-    // Показываем кнопку админки только владельцу
     if (currentUserId === ADMIN_USER_ID) {
         document.getElementById('adminSection').style.display = 'block';
     }
@@ -315,23 +136,16 @@ function renderProfile() {
 
 renderProfile();
 
-// ==========================================
-// КНОПКА УСТАНОВКИ MAX ID
-// ==========================================
 document.getElementById('setIdBtn').addEventListener('click', () => {
-    const maxId = prompt('Введи свой MAX ID (только цифры):\n\nНапример: 219641344\n\nПосле сохранения появится кнопка "Админ-панель".');
+    const maxId = prompt('Введи свой MAX ID (только цифры):\n\nНапример: 219641344');
     if (maxId && maxId.trim()) {
-        const fullId = 'max_' + maxId.trim().replace(/\D/g, '');
-        currentUserId = fullId;
+        currentUserId = 'max_' + maxId.trim().replace(/\D/g, '');
         saveUserData();
-        alert('✅ MAX ID сохранён: ' + fullId + '\n\nСтраница обновится, и кнопка админки появится!');
+        alert('✅ MAX ID сохранён: ' + currentUserId);
         location.reload();
     }
 });
 
-// ==========================================
-// ЗАГРУЗКА СТАТИСТИКИ
-// ==========================================
 async function loadStats() {
     if (!currentUserId) return;
     try {
@@ -340,22 +154,12 @@ async function loadStats() {
             fetch(`/api/favorites?telegramId=${currentUserId}`),
             fetch(`/api/chats?telegramId=${currentUserId}`)
         ]);
-        const listings = await listingsRes.json();
-        const favs = await favRes.json();
-        const chats = await chatsRes.json();
-        
-        document.getElementById('statMyListings').textContent = listings.length || 0;
-        document.getElementById('statFavorites').textContent = favs.length || 0;
-        document.getElementById('statChats').textContent = chats.length || 0;
-    } catch (e) { console.error('Ошибка загрузки статистики:', e); }
+        document.getElementById('statMyListings').textContent = (await listingsRes.json()).length || 0;
+        document.getElementById('statFavorites').textContent = (await favRes.json()).length || 0;
+        document.getElementById('statChats').textContent = (await chatsRes.json()).length || 0;
+    } catch (e) {}
 }
-
 loadStats();
-
-console.log('👤 Текущий ID:', currentUserId);
-console.log(' Admin ID:', ADMIN_USER_ID);
-console.log('👑 Админка доступна:', currentUserId === ADMIN_USER_ID);
 </script>
-
 </body>
 </html>
