@@ -69,15 +69,17 @@ const upload = multer({ storage: multer.diskStorage({ destination: (req, file, c
 // ==========================================
 app.get('/api/categories', (req, res) => res.json(db.prepare('SELECT * FROM categories').all()));
 
-app.get('/api/listings', (req, res) => {
-    const { city, category, search } = req.query;
-    let query = `SELECT l.*, c.name as category_name, c.icon as category_icon, (SELECT filename FROM images WHERE listing_id = l.id ORDER BY sort_order LIMIT 1) as main_image FROM listings l LEFT JOIN categories c ON l.category_id = c.id WHERE l.status = 'active'`;
-    const params = [];
-    if (city) { query += ' AND l.city = ?'; params.push(city); }
-    if (category) { query += ' AND l.category_id = ?'; params.push(category); }
-    if (search) { query += ' AND l.title LIKE ?'; params.push(`%${search}%`); }
-    query += ' ORDER BY l.is_vip DESC, l.created_at DESC LIMIT 50';
-    res.json(db.prepare(query).all(...params));
+app.get('/api/listings/:id', (req, res) => {
+    try {
+        db.prepare('UPDATE listings SET views = views + 1 WHERE id = ?').run(req.params.id);
+        const listing = db.prepare(`SELECT l.*, u.username, u.first_name, u.telegram_id as seller_id FROM listings l LEFT JOIN users u ON l.user_id = u.telegram_id WHERE l.id = ?`).get(req.params.id);
+        if (!listing) return res.status(404).json({ error: 'Не найдено' });
+        listing.images = db.prepare('SELECT * FROM images WHERE listing_id = ? ORDER BY sort_order').all(req.params.id);
+        res.json(listing);
+    } catch (e) {
+        console.error('Ошибка загрузки объявления:', e);
+        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+    }
 });
 
 app.post('/api/listings', upload.array('images', 5), (req, res) => {
