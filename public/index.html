@@ -100,5 +100,62 @@
             }
         });
     </script>
+    <script>
+// Предполагаем, что userId хранится в localStorage (как в твоём основном коде)
+const currentUserId = localStorage.getItem('telegramId') || 'demo_user';
+
+// Загрузка уведомлений при старте
+async function loadNotifications() {
+    try {
+        const res = await fetch(`/api/notifications?userId=${currentUserId}`);
+        const data = await res.json();
+        
+        // Обновляем бейдж
+        const badge = document.getElementById('notifBadge');
+        if (data.unreadCount > 0) {
+            badge.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
+            badge.style.display = 'block';
+        } else {
+            badge.style.display = 'none';
+        }
+
+        // Заполняем список
+        const list = document.getElementById('notifList');
+        if (data.notifications.length === 0) {
+            list.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">Нет уведомлений</div>';
+        } else {
+            list.innerHTML = data.notifications.map(n => `
+                <div style="padding: 10px; border-bottom: 1px solid #f0f0f0; ${n.is_read ? 'opacity: 0.6;' : 'background: #f8f9ff;'}">
+                    <div style="font-size: 13px; color: #666; margin-bottom: 4px;">${new Date(n.created_at).toLocaleString()}</div>
+                    <div style="font-size: 14px;">${n.message}</div>
+                </div>
+            `).join('');
+        }
+    } catch (e) { console.error('Ошибка загрузки уведомлений:', e); }
+}
+
+// Показать/скрыть dropdown
+document.getElementById('notifBtn').addEventListener('click', () => {
+    const dropdown = document.getElementById('notifDropdown');
+    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    if (dropdown.style.display === 'block') loadNotifications();
+});
+
+// Прочитать все
+async function markAllRead() {
+    await fetch('/api/notifications/read-all', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUserId })
+    });
+    loadNotifications();
+}
+
+// Загружаем при открытии страницы
+loadNotifications();
+
+// Обновляем каждые 30 секунд (опрос сервера)
+setInterval(loadNotifications, 30000);
+</script>
 </body>
 </html>
