@@ -2,66 +2,245 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Объявление</title>
-    <link rel="stylesheet" href="css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Объявление | Сыктывкар Барахолка</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        body { background: #f5f5f7; color: #1c1c1e; padding-bottom: 80px; }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .back-btn { background: none; border: none; color: white; font-size: 16px; cursor: pointer; text-decoration: none; }
+        .user-name { font-size: 14px; font-weight: 600; }
+        
+        .listing-container { max-width: 600px; margin: 0 auto; }
+        
+        .image-slider {
+            width: 100%;
+            height: 300px;
+            background: #e0e0e0;
+            position: relative;
+            overflow: hidden;
+        }
+        .image-slider img { width: 100%; height: 100%; object-fit: cover; }
+        .image-counter {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        
+        .listing-info {
+            background: white;
+            padding: 20px;
+            margin: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .listing-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+        .listing-price { font-size: 24px; font-weight: 700; color: #667eea; margin-bottom: 15px; }
+        .listing-price.free { color: #4caf50; }
+        .listing-description { font-size: 15px; line-height: 1.6; color: #555; margin-bottom: 15px; white-space: pre-wrap; }
+        .listing-meta { font-size: 13px; color: #999; margin-bottom: 5px; }
+        .listing-meta span { margin-right: 15px; }
+        
+        .seller-card {
+            background: white;
+            padding: 15px 20px;
+            margin: 0 15px 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .seller-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            font-weight: bold;
+        }
+        .seller-info { flex: 1; }
+        .seller-name { font-size: 16px; font-weight: 600; }
+        .seller-label { font-size: 12px; color: #999; }
+        
+        .action-buttons {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 12px 15px;
+            display: flex;
+            gap: 10px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-secondary { background: #f0f0f5; color: #333; }
+        .btn-secondary:hover { background: #e0e0e5; }
+        .btn-danger { background: #ff3b30; color: white; }
+        
+        .loading { text-align: center; padding: 60px 20px; color: #999; }
+        .error { text-align: center; padding: 60px 20px; color: #ff3b30; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <!-- ШАПКА -->
-        <header class="header">
-            <div class="header-top">
-                <a href="index.html" style="text-decoration: none; color: var(--accent-blue); font-size: 16px;">
-                    ← Назад
-                </a>
-                <div class="user-info">
-                    <span id="user-name">Гость</span>
+
+<div class="header">
+    <a class="back-btn" href="/index.html">← Назад</a>
+    <div class="user-name" id="userName">Гость</div>
+</div>
+
+<div class="listing-container" id="listingContainer">
+    <div class="loading">Загрузка объявления...</div>
+</div>
+
+<div class="action-buttons" id="actionButtons" style="display: none;">
+    <button class="btn btn-secondary" id="favoriteBtn">❤️ В избранное</button>
+    <button class="btn btn-primary" id="contactBtn">💬 Написать</button>
+</div>
+
+<script>
+// ==========================================
+// ДАННЫЕ ПОЛЬЗОВАТЕЛЯ
+// ==========================================
+let currentUserId = localStorage.getItem('telegramId') || 'user_' + Date.now();
+let currentUser = {
+    firstName: localStorage.getItem('userName') || 'Гость'
+};
+
+// Отображаем имя пользователя
+document.getElementById('userName').textContent = currentUser.firstName;
+
+// ==========================================
+// ЗАГРУЗКА ОБЪЯВЛЕНИЯ
+// ==========================================
+const listingId = new URLSearchParams(window.location.search).get('id');
+
+async function loadListing() {
+    const container = document.getElementById('listingContainer');
+    
+    if (!listingId) {
+        container.innerHTML = '<div class="error">Объявление не найдено</div>';
+        return;
+    }
+    
+    try {
+        const res = await fetch(`/api/listings/${listingId}`);
+        const listing = await res.json();
+        
+        if (!listing || listing.error) {
+            container.innerHTML = '<div class="error">Объявление не найдено или удалено</div>';
+            return;
+        }
+        
+        const isFree = listing.price === 0;
+        const images = listing.images || [];
+        const mainImage = images.length > 0 ? `/uploads/${images[0].filename}` : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect fill="%23ddd" width="400" height="300"/><text x="200" y="160" text-anchor="middle" font-size="40">📷</text></svg>';
+        
+        container.innerHTML = `
+            <div class="image-slider">
+                <img src="${mainImage}" alt="${listing.title}">
+                ${images.length > 1 ? `<div class="image-counter">1 / ${images.length}</div>` : ''}
+            </div>
+            
+            <div class="listing-info">
+                <div class="listing-title">${listing.title}</div>
+                <div class="listing-price ${isFree ? 'free' : ''}">${isFree ? 'Отдам даром' : listing.price.toLocaleString() + ' ₽'}</div>
+                <div class="listing-description">${listing.description || 'Описание не указано'}</div>
+                <div class="listing-meta">
+                    <span> ${listing.city || 'Сыктывкар'}</span>
+                    <span>👁️ ${listing.views || 0} просмотров</span>
+                </div>
+                <div class="listing-meta">
+                    <span>📅 ${new Date(listing.created_at).toLocaleDateString('ru-RU')}</span>
+                    <span>️ ${listing.category_name || 'Без категории'}</span>
                 </div>
             </div>
-        </header>
-
-        <!-- ДЕТАЛИ ОБЪЯВЛЕНИЯ -->
-        <div id="listing-detail">
-            <!-- Загрузится через JS -->
-        </div>
-    </div>
-
-    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
-        <nav class="bottom-nav">
-        <a href="index.html" class="nav-item active">
-            <div class="nav-icon">🏠</div>
-            <div class="nav-label">Главная</div>
-        </a>
-        <a href="favorites.html" class="nav-item">
-            <div class="nav-icon">❤️</div>
-            <div class="nav-label">Избранное</div>
-        </a>
-        <a href="chats.html" class="nav-item">
-            <div class="nav-icon" style="position: relative;">
-                💬
-                <span id="unread-badge" style="display: none; position: absolute; top: -6px; right: -10px; background: #f44336; color: white; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; align-items: center; justify-content: center; padding: 0 4px;">0</span>
+            
+            <div class="seller-card">
+                <div class="seller-avatar">${(listing.first_name || 'П').charAt(0).toUpperCase()}</div>
+                <div class="seller-info">
+                    <div class="seller-name">${listing.first_name || 'Продавец'}</div>
+                    <div class="seller-label">Продавец</div>
+                </div>
             </div>
-            <div class="nav-label">Чаты</div>
-        </a>
-        <a href="create.html" class="nav-item">
-            <div class="nav-icon">➕</div>
-            <div class="nav-label">Создать</div>
-        </a>
-        <a href="my-listings.html" class="nav-item">
-            <div class="nav-icon">📋</div>
-            <div class="nav-label">Мои</div>
-        </a>
-    </nav>
-
-    <script src="js/app.js"></script>
-    <script>
-        // Обновляем имя пользователя в шапке
-        document.addEventListener('DOMContentLoaded', () => {
-            const user = JSON.parse(localStorage.getItem('user'));
-            if (user && user.first_name) {
-                document.getElementById('user-name').textContent = user.first_name;
+        `;
+        
+        // Показываем кнопки действий
+        document.getElementById('actionButtons').style.display = 'flex';
+        
+        // Обработчик кнопки "В избранное"
+        document.getElementById('favoriteBtn').addEventListener('click', async () => {
+            try {
+                await fetch('/api/favorites', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ telegramId: currentUserId, listingId: listingId })
+                });
+                alert('✅ Добавлено в избранное!');
+            } catch (e) {
+                alert('❌ Ошибка при добавлении в избранное');
             }
         });
-    </script>
+        
+        // Обработчик кнопки "Написать"
+        document.getElementById('contactBtn').addEventListener('click', async () => {
+            try {
+                const res = await fetch('/api/chats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        buyerId: currentUserId,
+                        sellerId: listing.seller_id,
+                        listingId: listingId
+                    })
+                });
+                const data = await res.json();
+                window.location.href = `/chat.html?id=${data.chatId}`;
+            } catch (e) {
+                alert('❌ Ошибка при создании чата');
+            }
+        });
+        
+    } catch (e) {
+        container.innerHTML = '<div class="error">Ошибка загрузки объявления</div>';
+        console.error(e);
+    }
+}
+
+loadListing();
+</script>
+
 </body>
 </html>
