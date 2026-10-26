@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель | Сыктывкар Барахолка</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        body { background: #f5f5f5; color: #333; }
+        
+        /* Экран входа */
+        .login-screen {
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .login-box {
+            background: white; padding: 40px; border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); width: 90%; max-width: 400px;
+        }
+        .login-box h1 { margin-bottom: 20px; text-align: center; color: #667eea; }
+        .login-box input {
+            width: 100%; padding: 12px; margin: 10px 0;
+            border: 1px solid #ddd; border-radius: 6px; font-size: 16px;
+        }
+        .login-box button {
+            width: 100%; padding: 12px; background: #667eea; color: white;
+            border: none; border-radius: 6px; font-size: 16px; cursor: pointer;
+            margin-top: 10px;
+        }
+        .login-box button:hover { background: #5568d3; }
+        .error { color: #e74c3c; text-align: center; margin-top: 10px; display: none; }
+        
+        /* Админ-панель */
+        .admin-panel { display: none; }
+        .admin-panel.active { display: block; }
+        
+        .header {
+            background: #667eea; color: white; padding: 15px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header h1 { font-size: 20px; }
+        .logout-btn {
+            background: rgba(255,255,255,0.2); color: white;
+            border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;
+        }
+        
+        .tabs {
+            display: flex; background: white; border-bottom: 1px solid #ddd;
+            overflow-x: auto;
+        }
+        .tab {
+            padding: 15px 20px; cursor: pointer; border: none; background: none;
+            font-size: 14px; white-space: nowrap; border-bottom: 3px solid transparent;
+        }
+        .tab.active { border-bottom-color: #667eea; color: #667eea; font-weight: bold; }
+        
+        .content { padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Карточки статистики */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px; margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white; padding: 20px; border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .stat-card h3 { color: #666; font-size: 14px; margin-bottom: 10px; }
+        .stat-card .value { font-size: 32px; font-weight: bold; color: #667eea; }
+        
+        /* Таблицы */
+        .data-table {
+            width: 100%; background: white; border-radius: 8px;
+            overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .data-table th, .data-table td {
+            padding: 12px; text-align: left; border-bottom: 1px solid #eee;
+        }
+        .data-table th { background: #f8f9fa; font-weight: 600; font-size: 13px; }
+        .data-table tr:hover { background: #f8f9fa; }
+        
+        .btn {
+            padding: 6px 12px; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 13px; margin-right: 5px;
+        }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-warning { background: #f39c12; color: white; }
+        .btn-primary { background: #667eea; color: white; }
+        
+        .status-badge {
+            padding: 4px 8px; border-radius: 12px; font-size: 12px;
+        }
+        .status-active { background: #d4edda; color: #155724; }
+        .status-hidden { background: #f8d7da; color: #721c24; }
+        
+        /* Форма добавления категории */
+        .add-form {
+            background: white; padding: 20px; border-radius: 8px;
+            margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .add-form input {
+            padding: 8px; border: 1px solid #ddd; border-radius: 4px;
+            margin-right: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .data-table { font-size: 12px; }
+            .data-table th, .data-table td { padding: 8px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Экран входа -->
+<div class="login-screen" id="loginScreen">
+    <div class="login-box">
+        <h1>🔐 Админ-панель</h1>
+        <input type="password" id="passwordInput" placeholder="Введите пароль администратора">
+        <button onclick="login()">Войти</button>
+        <div class="error" id="errorMsg">Неверный пароль</div>
+    </div>
+</div>
+
+<!-- Админ-панель -->
+<div class="admin-panel" id="adminPanel">
+    <div class="header">
+        <h1>️ Админ-панель | Сыктывкар Барахолка</h1>
+        <button class="logout-btn" onclick="logout()">Выйти</button>
+    </div>
+    
+    <div class="tabs">
+        <button class="tab active" onclick="showTab('dashboard')">📊 Статистика</button>
+        <button class="tab" onclick="showTab('listings')">📦 Объявления</button>
+        <button class="tab" onclick="showTab('users')">👥 Пользователи</button>
+        <button class="tab" onclick="showTab('categories')">🏷️ Категории</button>
+    </div>
+    
+    <div class="content">
+        <!-- Статистика -->
+        <div class="tab-content active" id="dashboard">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Всего объявлений</h3>
+                    <div class="value" id="statListings">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Активных объявлений</h3>
+                    <div class="value" id="statActive">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Пользователей</h3>
+                    <div class="value" id="statUsers">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Категорий</h3>
+                    <div class="value" id="statCategories">0</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Объявления -->
+        <div class="tab-content" id="listings">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Название</th>
+                        <th>Цена</th>
+                        <th>Статус</th>
+                        <th>Дата</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="listingsTable"></tbody>
+            </table>
+        </div>
+        
+        <!-- Пользователи -->
+        <div class="tab-content" id="users">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Имя</th>
+                        <th>Username</th>
+                        <th>Дата регистрации</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTable"></tbody>
+            </table>
+        </div>
+        
+        <!-- Категории -->
+        <div class="tab-content" id="categories">
+            <div class="add-form">
+                <h3>Добавить категорию</h3>
+                <input type="text" id="catName" placeholder="Название">
+                <input type="text" id="catIcon" placeholder="Иконка (эмодзи)">
+                <button class="btn btn-primary" onclick="addCategory()">Добавить</button>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Иконка</th>
+                        <th>Название</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="categoriesTable"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="/js/admin.js"></script>
+</body>
+</html>
