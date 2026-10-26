@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Сыктывкар Барахолка</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
         body { background: #f5f5f7; color: #1c1c1e; padding-bottom: 70px; }
@@ -21,10 +22,25 @@
             align-items: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .header h1 { font-size: 18px; font-weight: 700; }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .user-name { font-size: 15px; font-weight: 600; cursor: pointer; }
+        .header h1 { font-size: 16px; font-weight: 700; }
         .header-actions { display: flex; gap: 10px; align-items: center; }
         
-        /* Колокольчик уведомлений */
+        /* Колокольчик */
         .notif-btn {
             position: relative;
             background: rgba(255,255,255,0.2);
@@ -33,9 +49,7 @@
             cursor: pointer;
             padding: 6px 10px;
             border-radius: 8px;
-            transition: background 0.2s;
         }
-        .notif-btn:hover { background: rgba(255,255,255,0.3); }
         .notif-badge {
             position: absolute;
             top: -4px;
@@ -73,35 +87,18 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            position: sticky;
-            top: 0;
             background: white;
             border-radius: 12px 12px 0 0;
         }
-        .notif-header button {
-            background: none;
-            border: none;
-            color: #667eea;
-            cursor: pointer;
-            font-size: 13px;
-        }
-        .notif-item {
-            padding: 12px 15px;
-            border-bottom: 1px solid #f0f0f0;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .notif-item:hover { background: #f8f9ff; }
+        .notif-header button { background: none; border: none; color: #667eea; cursor: pointer; font-size: 13px; }
+        .notif-item { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; }
         .notif-item.unread { background: #f0f4ff; }
         .notif-time { font-size: 11px; color: #999; margin-bottom: 4px; }
         .notif-text { font-size: 14px; color: #333; }
         .notif-empty { padding: 30px; text-align: center; color: #999; }
         
         /* Поиск */
-        .search-bar {
-            padding: 15px 20px;
-            background: white;
-        }
+        .search-bar { padding: 15px 20px; background: white; }
         .search-bar input {
             width: 100%;
             padding: 12px 15px;
@@ -130,15 +127,11 @@
             border-radius: 20px;
             font-size: 14px;
             cursor: pointer;
-            transition: all 0.2s;
             display: flex;
             align-items: center;
             gap: 6px;
         }
-        .cat-btn.active {
-            background: #667eea;
-            color: white;
-        }
+        .cat-btn.active { background: #667eea; color: white; }
         
         /* Объявления */
         .listings {
@@ -153,52 +146,17 @@
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
             cursor: pointer;
-            transition: transform 0.2s;
             position: relative;
         }
-        .listing-card:hover { transform: translateY(-2px); }
-        .listing-img {
-            width: 100%;
-            height: 130px;
-            background: #e0e0e0;
-            object-fit: cover;
-        }
+        .listing-img { width: 100%; height: 130px; background: #e0e0e0; object-fit: cover; }
         .listing-info { padding: 10px; }
-        .listing-title {
-            font-size: 14px;
-            font-weight: 700;
-            margin-bottom: 5px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .listing-price {
-            font-size: 15px;
-            font-weight: 600;
-            color: #667eea;
-        }
-        .listing-price.free {
-            color: #4caf50;
-        }
-        
-        /* Бейджи */
-        .badge {
-            position: absolute;
-            top: 8px;
-            left: 8px;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: bold;
-            color: white;
-        }
+        .listing-title { font-size: 14px; font-weight: 700; margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .listing-price { font-size: 15px; font-weight: 600; color: #667eea; }
+        .listing-price.free { color: #4caf50; }
+        .badge { position: absolute; top: 8px; left: 8px; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; }
         .badge-free { background: #4caf50; }
         .badge-vip { background: #ffd700; color: #333; }
-        .badge-new { background: #ff3b30; }
-        
-        .listing-card.free {
-            border: 2px solid #4caf50;
-        }
+        .listing-card.free { border: 2px solid #4caf50; }
         
         /* Нижняя навигация */
         .bottom-nav {
@@ -228,29 +186,20 @@
         .nav-btn.active { color: #667eea; }
         .nav-btn .icon { font-size: 22px; }
         
-        /* Пустое состояние */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #999;
-            grid-column: 1 / -1;
-        }
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; grid-column: 1 / -1; }
         .empty-state .icon { font-size: 60px; margin-bottom: 15px; }
-        
-        /* Loading */
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-            grid-column: 1 / -1;
-        }
+        .loading { text-align: center; padding: 40px; color: #999; grid-column: 1 / -1; }
     </style>
 </head>
 <body>
 
-<!-- Шапка -->
 <div class="header">
-    <h1>️ Сыктывкар Барахолка</h1>
+    <div class="header-left">
+        <div class="user-avatar" id="userAvatar" onclick="goTo('profile')">
+            <span id="avatarPlaceholder">👤</span>
+        </div>
+        <div class="user-name" id="userName" onclick="goTo('profile')">Гость</div>
+    </div>
     <div class="header-actions">
         <button class="notif-btn" id="notifBtn">
             🔔
@@ -259,7 +208,6 @@
     </div>
 </div>
 
-<!-- Dropdown уведомлений -->
 <div class="notif-dropdown" id="notifDropdown">
     <div class="notif-header">
         <span>Уведомления</span>
@@ -268,64 +216,103 @@
     <div id="notifList"></div>
 </div>
 
-<!-- Поиск -->
 <div class="search-bar">
     <input type="text" id="searchInput" placeholder="🔍 Поиск объявлений...">
 </div>
 
-<!-- Категории -->
 <div class="categories" id="categories"></div>
 
-<!-- Объявления -->
 <div class="listings" id="listings">
     <div class="loading">Загрузка...</div>
 </div>
 
-<!-- Нижняя навигация -->
 <div class="bottom-nav">
     <button class="nav-btn active" onclick="goTo('home')">
-        <span class="icon">🏠</span>
-        <span>Главная</span>
+        <span class="icon">🏠</span><span>Главная</span>
     </button>
     <button class="nav-btn" onclick="goTo('free')">
-        <span class="icon"></span>
-        <span>Даром</span>
-    </button>
-    <button class="nav-btn" onclick="goTo('business')">
-        <span class="icon">🏪</span>
-        <span>Бизнес</span>
+        <span class="icon">🎁</span><span>Даром</span>
     </button>
     <button class="nav-btn" onclick="goTo('chats')">
-        <span class="icon">💬</span>
-        <span>Чаты</span>
+        <span class="icon">💬</span><span>Чаты</span>
     </button>
-    <button class="nav-btn" onclick="goTo('my')">
-        <span class="icon">👤</span>
-        <span>Мои</span>
+    <button class="nav-btn" onclick="goTo('create')">
+        <span class="icon">➕</span><span>Создать</span>
+    </button>
+    <button class="nav-btn" onclick="goTo('profile')">
+        <span class="icon">👤</span><span>Профиль</span>
     </button>
 </div>
 
 <script>
 // ==========================================
-// ИНИЦИАЛИЗАЦИЯ
+// ИНИЦИАЛИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ ИЗ MAX
 // ==========================================
 let currentUserId = 'demo_user';
+let currentUser = { firstName: 'Гость', photoUrl: null };
 let currentCategory = null;
 let categories = [];
 
-// Получаем ID пользователя из Telegram/MAX WebApp
-if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe?.user) {
-    const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
-    currentUserId = 'tg_' + tgUser.id;
-    localStorage.setItem('telegramId', currentUserId);
-    localStorage.setItem('userName', tgUser.first_name || 'Пользователь');
-    window.Telegram.WebApp.expand();
+// Получаем данные из MAX WebApp
+if (window.Telegram && window.Telegram.WebApp) {
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        const user = tg.initDataUnsafe.user;
+        currentUserId = 'max_' + user.id;
+        currentUser = {
+            firstName: user.first_name || 'Пользователь',
+            lastName: user.last_name || '',
+            photoUrl: user.photo_url || null,
+            username: user.username || null
+        };
+        
+        // Сохраняем в localStorage
+        localStorage.setItem('telegramId', currentUserId);
+        localStorage.setItem('userName', currentUser.firstName);
+        if (currentUser.photoUrl) localStorage.setItem('userPhoto', currentUser.photoUrl);
+    }
 } else if (localStorage.getItem('telegramId')) {
     currentUserId = localStorage.getItem('telegramId');
+    currentUser.firstName = localStorage.getItem('userName') || 'Пользователь';
+    currentUser.photoUrl = localStorage.getItem('userPhoto');
+}
+
+// Отображаем пользователя в шапке
+function renderUser() {
+    const avatarEl = document.getElementById('userAvatar');
+    const nameEl = document.getElementById('userName');
+    
+    nameEl.textContent = currentUser.firstName;
+    
+    if (currentUser.photoUrl) {
+        avatarEl.innerHTML = `<img src="${currentUser.photoUrl}" alt="Avatar">`;
+    } else {
+        avatarEl.innerHTML = `<span>${currentUser.firstName.charAt(0).toUpperCase()}</span>`;
+    }
+}
+
+renderUser();
+
+// ==========================================
+// НАВИГАЦИЯ
+// ==========================================
+function goTo(page) {
+    const pages = {
+        'home': '/index.html',
+        'free': '/free.html',
+        'business': '/business.html',
+        'chats': '/chats.html',
+        'create': '/create.html',
+        'profile': '/profile.html',
+        'my': '/my-listings.html'
+    };
+    if (pages[page]) window.location.href = pages[page];
 }
 
 // ==========================================
-// ЗАГРУЗКА КАТЕГОРИЙ
+// КАТЕГОРИИ
 // ==========================================
 async function loadCategories() {
     try {
@@ -342,13 +329,11 @@ async function loadCategories() {
                 </button>
             `).join('')}
         `;
-    } catch (e) {
-        console.error('Ошибка загрузки категорий:', e);
-    }
+    } catch (e) { console.error(e); }
 }
 
 // ==========================================
-// ЗАГРУЗКА ОБЪЯВЛЕНИЙ
+// ОБЪЯВЛЕНИЯ
 // ==========================================
 async function loadListings() {
     const container = document.getElementById('listings');
@@ -364,19 +349,13 @@ async function loadListings() {
         const listings = await res.json();
         
         if (listings.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="icon">📭</div>
-                    <div>Объявлений пока нет</div>
-                    <div style="margin-top: 10px; font-size: 14px;">Будь первым!</div>
-                </div>
-            `;
+            container.innerHTML = '<div class="empty-state"><div class="icon"></div><div>Объявлений пока нет</div></div>';
             return;
         }
         
         container.innerHTML = listings.map(l => {
             const isFree = l.price === 0;
-            const img = l.main_image ? `/uploads/${l.main_image}` : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23ddd" width="100" height="100"/><text x="50" y="55" text-anchor="middle" font-size="30">📷</text></svg>';
+            const img = l.main_image ? `/uploads/${l.main_image}` : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23ddd" width="100" height="100"/></svg>';
             return `
                 <div class="listing-card ${isFree ? 'free' : ''}" onclick="openListing(${l.id})">
                     ${isFree ? '<div class="badge badge-free">БЕСПЛАТНО</div>' : ''}
@@ -391,7 +370,6 @@ async function loadListings() {
         }).join('');
     } catch (e) {
         container.innerHTML = '<div class="empty-state">Ошибка загрузки</div>';
-        console.error(e);
     }
 }
 
@@ -409,20 +387,6 @@ document.getElementById('searchInput').addEventListener('input', () => {
 
 function openListing(id) {
     window.location.href = `/listing.html?id=${id}`;
-}
-
-function goTo(page) {
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    event.currentTarget.classList.add('active');
-    
-    const pages = {
-        'home': '/index.html',
-        'free': '/free.html',
-        'business': '/business.html',
-        'chats': '/chats.html',
-        'my': '/my-listings.html'
-    };
-    window.location.href = pages[page];
 }
 
 // ==========================================
@@ -452,16 +416,13 @@ async function loadNotifications() {
                 </div>
             `).join('');
         }
-    } catch (e) {
-        console.error('Ошибка загрузки уведомлений:', e);
-    }
+    } catch (e) { console.error(e); }
 }
 
 document.getElementById('notifBtn').addEventListener('click', (e) => {
     e.stopPropagation();
-    const dropdown = document.getElementById('notifDropdown');
-    dropdown.classList.toggle('show');
-    if (dropdown.classList.contains('show')) loadNotifications();
+    document.getElementById('notifDropdown').classList.toggle('show');
+    loadNotifications();
 });
 
 document.addEventListener('click', (e) => {
@@ -486,8 +447,6 @@ async function markAllRead() {
 loadCategories();
 loadListings();
 loadNotifications();
-
-// Автообновление уведомлений каждые 30 секунд
 setInterval(loadNotifications, 30000);
 </script>
 
