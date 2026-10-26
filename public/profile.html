@@ -16,7 +16,7 @@
             align-items: center;
             gap: 15px;
         }
-        .back-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        .back-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; text-decoration: none; }
         .header h1 { font-size: 18px; font-weight: 700; }
         
         .profile-card {
@@ -39,11 +39,42 @@
             font-size: 48px;
             color: white;
             overflow: hidden;
+            font-weight: bold;
         }
         .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .profile-name { font-size: 22px; font-weight: 700; margin-bottom: 5px; }
         .profile-username { font-size: 14px; color: #999; margin-bottom: 5px; }
         .profile-id { font-size: 12px; color: #bbb; font-family: monospace; }
+        
+        .set-id-btn {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+        .set-id-btn:hover { background: #5568d3; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 0 20px 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px 10px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .stat-value { font-size: 24px; font-weight: 700; color: #667eea; }
+        .stat-label { font-size: 12px; color: #999; margin-top: 4px; }
         
         .menu-section {
             background: white;
@@ -70,22 +101,6 @@
         .menu-item.admin { background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%); }
         .menu-item.admin .menu-text { font-weight: 700; color: #333; }
         
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin: 0 20px 20px;
-        }
-        .stat-card {
-            background: white;
-            padding: 15px 10px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        }
-        .stat-value { font-size: 24px; font-weight: 700; color: #667eea; }
-        .stat-label { font-size: 12px; color: #999; margin-top: 4px; }
-        
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -108,6 +123,7 @@
             color: #999;
             font-size: 11px;
             padding: 5px 10px;
+            text-decoration: none;
         }
         .nav-btn.active { color: #667eea; }
         .nav-btn .icon { font-size: 22px; }
@@ -116,17 +132,18 @@
 <body>
 
 <div class="header">
-    <button class="back-btn" onclick="window.location.href='/index.html'">←</button>
+    <a class="back-btn" href="/index.html">←</a>
     <h1>Мой профиль</h1>
 </div>
 
 <div class="profile-card">
     <div class="profile-avatar" id="profileAvatar">
-        <span id="avatarPlaceholder"></span>
+        <span id="avatarPlaceholder">?</span>
     </div>
     <div class="profile-name" id="profileName">Загрузка...</div>
     <div class="profile-username" id="profileUsername"></div>
-    <div class="profile-id" id="profileId"></div>
+    <div class="profile-id" id="profileId">ID: ...</div>
+    <button class="set-id-btn" id="setIdBtn"> Указать мой MAX ID</button>
 </div>
 
 <div class="stats-grid">
@@ -156,7 +173,7 @@
         <span class="menu-arrow">›</span>
     </a>
     <a class="menu-item" href="/chats.html">
-        <span class="menu-icon">💬</span>
+        <span class="menu-icon"></span>
         <span class="menu-text">Мои чаты</span>
         <span class="menu-arrow">›</span>
     </a>
@@ -175,82 +192,148 @@
 <!-- Кнопка админки (показывается только владельцу) -->
 <div class="menu-section" id="adminSection" style="display: none;">
     <a class="menu-item admin" href="/admin.html">
-        <span class="menu-icon">🛠️</span>
+        <span class="menu-icon">️</span>
         <span class="menu-text">Админ-панель</span>
         <span class="menu-arrow">›</span>
     </a>
 </div>
 
 <div class="bottom-nav">
-    <button class="nav-btn" onclick="window.location.href='/index.html'">
+    <a class="nav-btn" href="/index.html">
         <span class="icon">🏠</span><span>Главная</span>
-    </button>
-    <button class="nav-btn" onclick="window.location.href='/free.html'">
+    </a>
+    <a class="nav-btn" href="/free.html">
         <span class="icon">🎁</span><span>Даром</span>
-    </button>
-    <button class="nav-btn" onclick="window.location.href='/chats.html'">
+    </a>
+    <a class="nav-btn" href="/chats.html">
         <span class="icon">💬</span><span>Чаты</span>
-    </button>
-    <button class="nav-btn" onclick="window.location.href='/create.html'">
+    </a>
+    <a class="nav-btn" href="/create.html">
         <span class="icon">➕</span><span>Создать</span>
-    </button>
-    <button class="nav-btn active">
+    </a>
+    <a class="nav-btn active" href="/profile.html">
         <span class="icon">👤</span><span>Профиль</span>
-    </button>
+    </a>
 </div>
 
 <script>
 // ==========================================
-// ДАННЫЕ ПОЛЬЗОВАТЕЛЯ ИЗ MAX
+// НАСТРОЙКИ
 // ==========================================
-let currentUserId = 'demo_user';
-let currentUser = { firstName: 'Гость', photoUrl: null, username: null };
+// ⚠️ ЗАМЕНИ НА СВОЙ MAX ID (без префикса max_)
+const ADMIN_USER_ID = 'max_219641344';
 
-// ⚠️ ЗАМЕНИ НА СВОЙ MAX USER ID (узнаешь после первого входа)
-const ADMIN_USER_ID = 'max_219641344'; // <-- Сюда вставь свой ID
+// ==========================================
+// ДАННЫЕ ПОЛЬЗОВАТЕЛЯ
+// ==========================================
+let currentUserId = localStorage.getItem('telegramId') || null;
+let currentUser = {
+    firstName: localStorage.getItem('userName') || 'Гость',
+    lastName: localStorage.getItem('userLastName') || '',
+    photoUrl: localStorage.getItem('userPhoto') || null,
+    username: localStorage.getItem('userUsername') || null
+};
 
-if (window.Telegram && window.Telegram.WebApp) {
-    const tg = window.Telegram.WebApp;
-    tg.expand();
+// Попытка получить данные из WebApp (MAX или Telegram)
+function initWebApp() {
+    let user = null;
+    let prefix = 'user_';
     
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        const user = tg.initDataUnsafe.user;
-        currentUserId = 'max_' + user.id;
-        currentUser = {
-            firstName: user.first_name || 'Пользователь',
-            lastName: user.last_name || '',
-            photoUrl: user.photo_url || null,
-            username: user.username || null
-        };
-        localStorage.setItem('telegramId', currentUserId);
-        localStorage.setItem('userName', currentUser.firstName);
-        if (currentUser.photoUrl) localStorage.setItem('userPhoto', currentUser.photoUrl);
+    // Telegram WebApp
+    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+        user = window.Telegram.WebApp.initDataUnsafe.user;
+        prefix = 'tg_';
+        if (window.Telegram.WebApp.expand) window.Telegram.WebApp.expand();
     }
-} else if (localStorage.getItem('telegramId')) {
-    currentUserId = localStorage.getItem('telegramId');
-    currentUser.firstName = localStorage.getItem('userName') || 'Пользователь';
-    currentUser.photoUrl = localStorage.getItem('userPhoto');
+    
+    // MAX WebApp
+    if (!user && window.MAX?.WebApp?.initDataUnsafe?.user) {
+        user = window.MAX.WebApp.initDataUnsafe.user;
+        prefix = 'max_';
+        if (window.MAX.WebApp.expand) window.MAX.WebApp.expand();
+    }
+    
+    if (user && user.id) {
+        currentUserId = prefix + user.id;
+        currentUser.firstName = user.first_name || user.name || 'Пользователь';
+        currentUser.lastName = user.last_name || '';
+        currentUser.photoUrl = user.photo_url || null;
+        currentUser.username = user.username || null;
+        saveUserData();
+        console.log('✅ Пользователь из WebApp:', currentUserId);
+        return true;
+    }
+    return false;
 }
 
-// Отображаем профиль
-document.getElementById('profileName').textContent = currentUser.firstName + (currentUser.lastName ? ' ' + currentUser.lastName : '');
-if (currentUser.username) document.getElementById('profileUsername').textContent = '@' + currentUser.username;
-document.getElementById('profileId').textContent = 'ID: ' + currentUserId;
-
-const avatarEl = document.getElementById('profileAvatar');
-if (currentUser.photoUrl) {
-    avatarEl.innerHTML = `<img src="${currentUser.photoUrl}" alt="Avatar">`;
-} else {
-    avatarEl.innerHTML = `<span>${currentUser.firstName.charAt(0).toUpperCase()}</span>`;
+function saveUserData() {
+    if (currentUserId) localStorage.setItem('telegramId', currentUserId);
+    if (currentUser.firstName) localStorage.setItem('userName', currentUser.firstName);
+    if (currentUser.lastName) localStorage.setItem('userLastName', currentUser.lastName);
+    if (currentUser.photoUrl) localStorage.setItem('userPhoto', currentUser.photoUrl);
+    if (currentUser.username) localStorage.setItem('userUsername', currentUser.username);
 }
 
-// Показываем кнопку админки только владельцу
-if (currentUserId === ADMIN_USER_ID) {
-    document.getElementById('adminSection').style.display = 'block';
+// Если WebApp не сработал — спрашиваем имя (только при первом входе)
+function askUserName() {
+    if (!currentUser.firstName || currentUser.firstName === 'Гость') {
+        const name = prompt('👋 Как вас зовут?');
+        if (name && name.trim()) {
+            currentUser.firstName = name.trim();
+            if (!currentUserId) currentUserId = 'user_' + Date.now();
+            saveUserData();
+            location.reload();
+        }
+    }
 }
 
-// Загружаем статистику
+// Запускаем инициализацию
+const gotFromWebApp = initWebApp();
+if (!gotFromWebApp) askUserName();
+
+// ==========================================
+// ОТОБРАЖЕНИЕ ПРОФИЛЯ
+// ==========================================
+function renderProfile() {
+    const fullName = currentUser.firstName + (currentUser.lastName ? ' ' + currentUser.lastName : '');
+    document.getElementById('profileName').textContent = fullName;
+    if (currentUser.username) document.getElementById('profileUsername').textContent = '@' + currentUser.username;
+    document.getElementById('profileId').textContent = 'ID: ' + (currentUserId || 'неизвестен');
+
+    const avatarEl = document.getElementById('profileAvatar');
+    if (currentUser.photoUrl) {
+        avatarEl.innerHTML = `<img src="${currentUser.photoUrl}" alt="Avatar">`;
+    } else {
+        avatarEl.innerHTML = `<span>${(currentUser.firstName || '?').charAt(0).toUpperCase()}</span>`;
+    }
+
+    // Показываем кнопку админки только владельцу
+    if (currentUserId === ADMIN_USER_ID) {
+        document.getElementById('adminSection').style.display = 'block';
+    }
+}
+
+renderProfile();
+
+// ==========================================
+// КНОПКА УСТАНОВКИ MAX ID
+// ==========================================
+document.getElementById('setIdBtn').addEventListener('click', () => {
+    const maxId = prompt('Введи свой MAX ID (только цифры):\n\nНапример: 219641344\n\nПосле сохранения появится кнопка "Админ-панель".');
+    if (maxId && maxId.trim()) {
+        const fullId = 'max_' + maxId.trim().replace(/\D/g, '');
+        currentUserId = fullId;
+        saveUserData();
+        alert('✅ MAX ID сохранён: ' + fullId + '\n\nСтраница обновится, и кнопка админки появится!');
+        location.reload();
+    }
+});
+
+// ==========================================
+// ЗАГРУЗКА СТАТИСТИКИ
+// ==========================================
 async function loadStats() {
+    if (!currentUserId) return;
     try {
         const [listingsRes, favRes, chatsRes] = await Promise.all([
             fetch(`/api/my-listings?telegramId=${currentUserId}`),
@@ -264,14 +347,14 @@ async function loadStats() {
         document.getElementById('statMyListings').textContent = listings.length || 0;
         document.getElementById('statFavorites').textContent = favs.length || 0;
         document.getElementById('statChats').textContent = chats.length || 0;
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error('Ошибка загрузки статистики:', e); }
 }
 
 loadStats();
 
-// Выводим ID в консоль для удобства (чтобы узнать свой ID)
-console.log('Твой MAX User ID:', currentUserId);
-
+console.log('👤 Текущий ID:', currentUserId);
+console.log(' Admin ID:', ADMIN_USER_ID);
+console.log('👑 Админка доступна:', currentUserId === ADMIN_USER_ID);
 </script>
 
 </body>
