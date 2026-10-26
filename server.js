@@ -7,7 +7,7 @@ const Database = require('better-sqlite3');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
+const HOST = process.env.HOST || '0.0.0.0'; // Обязательно для Timeweb/Docker
 
 // Middleware
 app.use(cors());
@@ -23,14 +23,20 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ (ЭТОГО НЕ ХВАТАЛО!)
+// 1. ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ (ИСПРАВЛЕННАЯ ДЛЯ ОБЛАКА)
 // ==========================================
-const dbPath = path.join(__dirname, 'market.db');
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true }); // Создаём папку data с правами на запись
+}
+
+const dbPath = path.join(dataDir, 'market.db');
 const db = new Database(dbPath);
+
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
-// Создание таблиц (если их нет)
+// Создание таблиц
 db.exec(`
     CREATE TABLE IF NOT EXISTS users (
         telegram_id TEXT PRIMARY KEY, username TEXT, first_name TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -42,18 +48,17 @@ db.exec(`
         id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, category_id INTEGER NOT NULL,
         title TEXT NOT NULL, description TEXT, price INTEGER DEFAULT 0, city TEXT DEFAULT 'Сыктывкар',
         address TEXT, status TEXT DEFAULT 'active', views INTEGER DEFAULT 0, is_vip INTEGER DEFAULT 0,
-        is_business INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(telegram_id), FOREIGN KEY(category_id) REFERENCES categories(id)
+        is_business INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS images (
         id INTEGER PRIMARY KEY AUTOINCREMENT, listing_id INTEGER NOT NULL, filename TEXT NOT NULL,
-        sort_order INTEGER DEFAULT 0, FOREIGN KEY(listing_id) REFERENCES listings(id) ON DELETE CASCADE
+        sort_order INTEGER DEFAULT 0
     );
     CREATE TABLE IF NOT EXISTS business_profiles (
         user_id TEXT PRIMARY KEY, business_name TEXT NOT NULL, logo_filename TEXT, description TEXT,
         phone TEXT, address TEXT, website TEXT, category TEXT, rating REAL DEFAULT 5.0,
         total_reviews INTEGER DEFAULT 0, is_premium INTEGER DEFAULT 0, premium_until DATETIME,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(telegram_id)
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS chats (
         id INTEGER PRIMARY KEY AUTOINCREMENT, buyer_id TEXT NOT NULL, seller_id TEXT NOT NULL,
@@ -73,12 +78,12 @@ db.exec(`
     );
 `);
 
-// Добавляем колонку is_business, если её вдруг нет
+// Добавляем колонку is_business, если её вдруг нет (для совместимости)
 try {
     db.prepare('ALTER TABLE listings ADD COLUMN is_business INTEGER DEFAULT 0').run();
-} catch (e) { /* Колонка уже существует */ }
+} catch (e) { /* Колонка уже существует, игнорируем */ }
 
-// Заполняем категории, если пусто
+// Заполняем категории, если база пустая
 const catCount = db.prepare('SELECT COUNT(*) as count FROM categories').get().count;
 if (catCount === 0) {
     const defaultCategories = [
@@ -112,7 +117,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // ==========================================
-// API РОУТЫ (Краткая версия основных)
+// 2. ОСНОВНЫЕ API РОУТЫ
 // ==========================================
 
 app.get('/api/categories', (req, res) => {
@@ -148,13 +153,89 @@ app.get('/api/free-stuff', (req, res) => {
     res.json(db.prepare(query).all(...params));
 });
 
-// (Здесь можно добавить остальные роуты из твоего оригинального server.js, 
-// главное, что переменная `db` теперь определена в самом верху!)
+app.post('/api/listings', upload.array('images', 5), (req, res) => {
+    const { telegramId, categoryId, title, description, price, city, address, isBusiness, username, firstName } = req.body;
+    if (!telegramId || !categoryId || !title) return res.status(400).json({ error: 'Заполните обязательные поля' });
+
+    getOrCreateUser(telegramId, username, firstName);
+    const result = db.prepare(`
+        INSERT INTO listings (user_id, category_id, title, description, price, city, address, is_business)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(telegramId, categoryId, title, description, price || 0, city || 'Сыктывкар', address, isBusiness === '1' ? 1 : 0);
+
+    const listingId = result.lastInsertRowid;
+    if (req.files && req.files.length > 0) {
+        const insertImg = db.prepare('INSERT INTO images (listing_id, filename, sort_order) VALUES (?, ?, ?)');
+        req.files.forEach((file, index) => insertImg.run(listingId, file.filename, index));
+    }
+    res.json({ success: true, listingId });
+});
+
+app.get('/api/listings/:id', (req, res) => {
+    db.prepare('UPDATE listings SET views = views + 1 WHERE id = ?').run(req.params.id);
+    const listing = db.prepare(`
+        SELECT l.*, u.username, u.first_name, u.telegram_id as seller_id
+        FROM listings l JOIN users u ON l.user_id = u.telegram_id WHERE l.id = ?
+    `).get(req.params.id);
+    
+    if (!listing) return res.status(404).json({ error: 'Не найдено' });
+    listing.images = db.prepare('SELECT * FROM images WHERE listing_id = ? ORDER BY sort_order').all(req.params.id);
+    res.json(listing);
+});
+
+app.get('/api/my-listings', (req, res) => {
+    const { telegramId } = req.query;
+    const query = `
+        SELECT l.*, c.icon as category_icon,
+               (SELECT filename FROM images WHERE listing_id = l.id ORDER BY sort_order LIMIT 1) as main_image
+        FROM listings l LEFT JOIN categories c ON l.category_id = c.id
+        WHERE l.user_id = ? ORDER BY l.created_at DESC
+    `;
+    res.json(db.prepare(query).all(telegramId));
+});
+
+app.delete('/api/listings/:id', (req, res) => {
+    const { telegramId } = req.body;
+    const listing = db.prepare('SELECT * FROM listings WHERE id = ?').get(req.params.id);
+    if (listing && listing.user_id === telegramId) {
+        db.prepare('DELETE FROM listings WHERE id = ?').run(req.params.id);
+        res.json({ success: true });
+    } else {
+        res.status(403).json({ error: 'Нет прав' });
+    }
+});
+
+// Чаты (упрощенная версия)
+app.post('/api/chats', (req, res) => {
+    const { buyerId, sellerId, listingId } = req.body;
+    let chat = db.prepare('SELECT id FROM chats WHERE buyer_id = ? AND seller_id = ? AND listing_id = ?').get(buyerId, sellerId, listingId);
+    if (!chat) {
+        const result = db.prepare('INSERT INTO chats (buyer_id, seller_id, listing_id) VALUES (?, ?, ?)').run(buyerId, sellerId, listingId);
+        chat = { id: result.lastInsertRowid };
+    }
+    res.json({ chatId: chat.id });
+});
+
+app.get('/api/chats', (req, res) => {
+    const { telegramId } = req.query;
+    const query = `
+        SELECT c.id as chat_id, l.title as listing_title, l.price as listing_price,
+               CASE WHEN c.buyer_id = ? THEN u2.first_name ELSE u1.first_name END as companion_name,
+               (SELECT text FROM messages WHERE chat_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message
+        FROM chats c
+        JOIN listings l ON c.listing_id = l.id
+        JOIN users u1 ON c.buyer_id = u1.telegram_id
+        JOIN users u2 ON c.seller_id = u2.telegram_id
+        WHERE c.buyer_id = ? OR c.seller_id = ?
+        ORDER BY c.created_at DESC
+    `;
+    res.json(db.prepare(query).all(telegramId, telegramId, telegramId));
+});
+
 // ==========================================
-// АДМИН-ПАНЕЛЬ API
+// 3. АДМИН-ПАНЕЛЬ API
 // ==========================================
 
-// Статистика
 app.get('/api/admin/stats', (req, res) => {
     const totalListings = db.prepare('SELECT COUNT(*) as count FROM listings').get().count;
     const activeListings = db.prepare("SELECT COUNT(*) as count FROM listings WHERE status = 'active'").get().count;
@@ -163,7 +244,6 @@ app.get('/api/admin/stats', (req, res) => {
     res.json({ totalListings, activeListings, totalUsers, totalCategories });
 });
 
-// Все объявления
 app.get('/api/admin/listings', (req, res) => {
     const listings = db.prepare(`
         SELECT l.*, c.name as category_name 
@@ -173,47 +253,40 @@ app.get('/api/admin/listings', (req, res) => {
     res.json(listings);
 });
 
-// Изменить статус объявления
 app.put('/api/admin/listings/:id/status', (req, res) => {
     const { status } = req.body;
     db.prepare('UPDATE listings SET status = ? WHERE id = ?').run(status, req.params.id);
     res.json({ success: true });
 });
 
-// Удалить объявление
 app.delete('/api/admin/listings/:id', (req, res) => {
     db.prepare('DELETE FROM listings WHERE id = ?').run(req.params.id);
     res.json({ success: true });
 });
 
-// Все пользователи
 app.get('/api/admin/users', (req, res) => {
     const users = db.prepare('SELECT * FROM users ORDER BY created_at DESC').all();
     res.json(users);
 });
 
-// Заблокировать пользователя (пока просто помечаем — можно добавить поле is_banned)
 app.post('/api/admin/users/:userId/block', (req, res) => {
-    // Для простоты удаляем все объявления пользователя
     db.prepare('UPDATE listings SET status = ? WHERE user_id = ?').run('hidden', req.params.userId);
     res.json({ success: true, message: 'Пользователь заблокирован, объявления скрыты' });
 });
 
-// Добавить категорию
 app.post('/api/admin/categories', (req, res) => {
     const { name, icon } = req.body;
     db.prepare('INSERT INTO categories (name, icon) VALUES (?, ?)').run(name, icon);
     res.json({ success: true });
 });
 
-// Удалить категорию
 app.delete('/api/admin/categories/:id', (req, res) => {
     db.prepare('DELETE FROM categories WHERE id = ?').run(req.params.id);
     res.json({ success: true });
 });
 
 // ==========================================
-// ЗАПУСК СЕРВЕРА
+// 4. ЗАПУСК СЕРВЕРА
 // ==========================================
 app.listen(PORT, HOST, () => {
     console.log(`🏙️ Маркетплейс Сыктывкар запущен на http://${HOST}:${PORT}`);
