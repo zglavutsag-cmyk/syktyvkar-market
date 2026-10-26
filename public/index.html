@@ -240,11 +240,11 @@
 
 <script>
 // ==========================================
-// ИНИЦИАЛИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ (MAX + Telegram + Fallback)
+// ИНИЦИАЛИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ (ТРОЙНОЙ FALLBACK)
 // ==========================================
-let currentUserId = localStorage.getItem('telegramId') || 'demo_user';
+let currentUserId = localStorage.getItem('telegramId') || null;
 let currentUser = {
-    firstName: localStorage.getItem('userName') || 'Пользователь',
+    firstName: localStorage.getItem('userName') || null,
     lastName: localStorage.getItem('userLastName') || '',
     photoUrl: localStorage.getItem('userPhoto') || null,
     username: localStorage.getItem('userUsername') || null
@@ -252,70 +252,83 @@ let currentUser = {
 let currentCategory = null;
 let categories = [];
 
-// Функция сохранения данных
 function saveUserData() {
-    localStorage.setItem('telegramId', currentUserId);
-    localStorage.setItem('userName', currentUser.firstName);
-    localStorage.setItem('userLastName', currentUser.lastName);
+    if (currentUserId) localStorage.setItem('telegramId', currentUserId);
+    if (currentUser.firstName) localStorage.setItem('userName', currentUser.firstName);
+    if (currentUser.lastName) localStorage.setItem('userLastName', currentUser.lastName);
     if (currentUser.photoUrl) localStorage.setItem('userPhoto', currentUser.photoUrl);
     if (currentUser.username) localStorage.setItem('userUsername', currentUser.username);
 }
 
-// Пытаемся получить данные из WebApp (MAX или Telegram)
+// Попытка получить данные из WebApp
 function initWebApp() {
-    let webApp = null;
     let user = null;
     let prefix = 'user_';
     
-    // 1. Пробуем Telegram WebApp (работает и в MAX часто)
-    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
-        webApp = window.Telegram.WebApp;
-        user = webApp.initDataUnsafe.user;
+    // 1. Telegram WebApp
+    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+        user = window.Telegram.WebApp.initDataUnsafe.user;
         prefix = 'tg_';
+        if (window.Telegram.WebApp.expand) window.Telegram.WebApp.expand();
     }
     
-    // 2. Если не получилось - пробуем MAX WebApp
-    if (!user && window.MAX && window.MAX.WebApp && window.MAX.WebApp.initDataUnsafe) {
-        webApp = window.MAX.WebApp;
-        user = webApp.initDataUnsafe.user;
+    // 2. MAX WebApp (если есть)
+    if (!user && window.MAX?.WebApp?.initDataUnsafe?.user) {
+        user = window.MAX.WebApp.initDataUnsafe.user;
         prefix = 'max_';
+        if (window.MAX.WebApp.expand) window.MAX.WebApp.expand();
     }
     
-    // 3. Если данные есть - используем их
+    // 3. Если данные есть — используем
     if (user && user.id) {
         currentUserId = prefix + user.id;
-        currentUser = {
-            firstName: user.first_name || user.name || 'Пользователь',
-            lastName: user.last_name || '',
-            photoUrl: user.photo_url || null,
-            username: user.username || null
-        };
+        currentUser.firstName = user.first_name || user.name || 'Пользователь';
+        currentUser.lastName = user.last_name || '';
+        currentUser.photoUrl = user.photo_url || null;
+        currentUser.username = user.username || null;
         saveUserData();
-        
-        if (webApp && webApp.expand) webApp.expand();
-        console.log('✅ Пользователь определён:', currentUserId, currentUser.firstName);
-    } else {
-        console.log('ℹ️ WebApp данные не найдены, используем localStorage');
+        console.log('✅ Пользователь из WebApp:', currentUserId, currentUser.firstName);
+        return true;
+    }
+    
+    console.log('ℹ️ WebApp данные не найдены');
+    return false;
+}
+
+// Если WebApp не сработал — спрашиваем имя (только при первом входе)
+function askUserName() {
+    if (!currentUser.firstName || currentUser.firstName === 'Гость') {
+        const name = prompt('👋 Как вас зовут?\n(это имя будет видно другим пользователям)');
+        if (name && name.trim()) {
+            currentUser.firstName = name.trim();
+            currentUserId = 'user_' + Date.now();
+            saveUserData();
+            console.log('✅ Имя сохранено:', currentUser.firstName);
+            location.reload();
+        } else {
+            currentUser.firstName = 'Гость';
+            currentUserId = 'guest_' + Date.now();
+            saveUserData();
+        }
     }
 }
 
-initWebApp();
+// Запускаем инициализацию
+const gotFromWebApp = initWebApp();
+if (!gotFromWebApp) askUserName();
 
 // Отображаем пользователя в шапке
 function renderUser() {
     const avatarEl = document.getElementById('userAvatar');
     const nameEl = document.getElementById('userName');
-    
-    nameEl.textContent = currentUser.firstName;
-    
+    nameEl.textContent = currentUser.firstName || 'Гость';
     if (currentUser.photoUrl) {
         avatarEl.innerHTML = `<img src="${currentUser.photoUrl}" alt="Avatar">`;
     } else {
-        const initial = currentUser.firstName.charAt(0).toUpperCase();
+        const initial = (currentUser.firstName || 'Г').charAt(0).toUpperCase();
         avatarEl.innerHTML = `<span>${initial}</span>`;
     }
 }
-
 renderUser();
 
 // ==========================================
@@ -344,14 +357,16 @@ async function loadCategories() {
     
     if (cached && cachedTime && (Date.now() - parseInt(cachedTime)) < oneHour) {
         categories = JSON.parse(cached);
+        console.log(' Категории из кэша');
     } else {
         try {
             const res = await fetch('/api/categories');
             categories = await res.json();
             localStorage.setItem('categories', JSON.stringify(categories));
             localStorage.setItem('categoriesTime', Date.now().toString());
+            console.log(' Категории загружены с сервера');
         } catch (e) {
-            console.error('Ошибка загрузки категорий:', e);
+            console.error(' Ошибка загрузки категорий:', e);
             return;
         }
     }
@@ -359,7 +374,7 @@ async function loadCategories() {
     const container = document.getElementById('categories');
     container.innerHTML = `
         <button class="cat-btn active" onclick="filterCategory(null, this)">
-            <span>🔥</span><span>Все</span>
+            <span></span><span>Все</span>
         </button>
         ${categories.map(c => `
             <button class="cat-btn" onclick="filterCategory(${c.id}, this)">
@@ -397,7 +412,7 @@ async function loadListings() {
                 <div class="listing-card ${isFree ? 'free' : ''}" onclick="openListing(${l.id})">
                     ${isFree ? '<div class="badge badge-free">БЕСПЛАТНО</div>' : ''}
                     ${l.is_vip ? '<div class="badge badge-vip">⭐ VIP</div>' : ''}
-                    <img class="listing-img" src="${img}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/></svg>'">
+                    <img class="listing-img" src="${img}" onerror="this.style.background='#ddd'">
                     <div class="listing-info">
                         <div class="listing-title">${l.title}</div>
                         <div class="listing-price ${isFree ? 'free' : ''}">${isFree ? 'Отдам даром' : l.price.toLocaleString() + ' ₽'}</div>
@@ -407,6 +422,7 @@ async function loadListings() {
         }).join('');
     } catch (e) {
         container.innerHTML = '<div class="empty-state">Ошибка загрузки</div>';
+        console.error(e);
     }
 }
 
@@ -430,6 +446,7 @@ function openListing(id) {
 // УВЕДОМЛЕНИЯ
 // ==========================================
 async function loadNotifications() {
+    if (!currentUserId) return;
     try {
         const res = await fetch(`/api/notifications?userId=${currentUserId}`);
         const data = await res.json();
@@ -470,6 +487,7 @@ document.addEventListener('click', (e) => {
 });
 
 async function markAllRead() {
+    if (!currentUserId) return;
     await fetch('/api/notifications/read-all', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -481,6 +499,9 @@ async function markAllRead() {
 // ==========================================
 // СТАРТ
 // ==========================================
+console.log('🚀 Запуск приложения...');
+console.log('👤 Пользователь:', currentUserId, currentUser.firstName);
+
 loadCategories();
 loadListings();
 loadNotifications();
