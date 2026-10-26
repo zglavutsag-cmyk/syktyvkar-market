@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Чат</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- ШАПКА ЧАТА -->
+        <header class="header chat-header">
+            <div class="header-top">
+                <a href="chats.html" style="text-decoration: none; color: var(--accent-blue); font-size: 16px;">
+                    ← Назад
+                </a>
+                <div class="chat-header-info">
+                    <div id="chat-header-name" style="font-weight: 600;">Пользователь</div>
+                </div>
+            </div>
+            <div id="chat-listing-info" style="margin-top: 8px; font-size: 13px; color: var(--text-secondary);">
+                <!-- Информация об объявлении -->
+            </div>
+        </header>
+
+        <!-- СООБЩЕНИЯ -->
+        <div id="chat-messages" class="chat-messages">
+            <!-- Загрузится через JS -->
+        </div>
+
+        <!-- ФОРМА ОТПРАВКИ -->
+        <form id="message-form" class="message-form">
+            <input 
+                type="text" 
+                id="message-input" 
+                class="message-input" 
+                placeholder="Напишите сообщение..."
+                autocomplete="off"
+            >
+            <button type="submit" class="message-send-btn">
+                ➤
+            </button>
+        </form>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

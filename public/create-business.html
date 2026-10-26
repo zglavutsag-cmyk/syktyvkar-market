@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Создать бизнес-профиль</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-top">
+                <a href="business-list.html" style="text-decoration: none; color: var(--accent-blue); font-size: 16px;">← Назад</a>
+            </div>
+            <h1 style="font-size: 24px; font-weight: 700; margin-top: 12px;">🏢 Мой бизнес</h1>
+        </header>
+
+        <form id="business-form" class="form-section" enctype="multipart/form-data">
+            <div class="form-group">
+                <label class="form-label">Название бизнеса *</label>
+                <input type="text" name="businessName" class="form-input" placeholder="Например: Кофейня 'Утро'" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Категория</label>
+                <select name="category" class="form-select">
+                    <option value="Еда и напитки">🍔 Еда и напитки</option>
+                    <option value="Ремонт и строительство">🔨 Ремонт и строительство</option>
+                    <option value="Красота и здоровье">💅 Красота и здоровье</option>
+                    <option value="Образование">🎓 Образование</option>
+                    <option value="Автоуслуги">🚗 Автоуслуги</option>
+                    <option value="Другое">📦 Другое</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Описание</label>
+                <textarea name="description" class="form-textarea" placeholder="Расскажите о вашем бизнесе..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Телефон для связи</label>
+                <input type="tel" name="phone" class="form-input" placeholder="+7 (999) 000-00-00">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Адрес</label>
+                <input type="text" name="address" class="form-input" placeholder="г. Сыктывкар, ул. ...">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Логотип / Фото</label>
+                <input type="file" name="logo" accept="image/*" class="form-input">
+            </div>
+
+            <button type="submit" class="btn btn-primary">Сохранить профиль</button>
+        </form>
+
+        <div id="subscription-info" class="form-section" style="display: none; text-align: center; border: 2px solid #ffd700;">
+            <h3 style="margin-bottom: 8px;">⭐ PREMIUM подписка</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">Выделите свой бизнес, получайте больше клиентов!</p>
+            <button onclick="activatePremium()" class="btn" style="background: #ffd700; color: #000; font-weight: 700;">Активировать за 499 ₽/мес</button>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = JSON.parse(localStorage.getItem('user'));
+            
+            // Проверяем текущий статус подписки
+            try {
+                const res = await fetch(`/api/subscription/status/${user.telegram_id}`);
+                const data = await res.json();
+                if (data.isPremium) {
+                    document.getElementById('subscription-info').style.display = 'block';
+                    document.getElementById('subscription-info').innerHTML = `<h3 style="color: #ffd700;">⭐ У вас активна PREMIUM подписка до ${new Date(data.premiumUntil).toLocaleDateString()}</h3>`;
+                }
+            } catch(e) {}
+        });
+
+        document.getElementById('business-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = JSON.parse(localStorage.getItem('user'));
+            const formData = new FormData(e.target);
+            formData.append('userId', user.telegram_id);
+
+            try {
+                const res = await fetch('/api/business/profile', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    alert('✅ Бизнес-профиль сохранен!');
+                    window.location.href = `business.html?userId=${user.telegram_id}`;
+                }
+            } catch (err) {
+                alert('❌ Ошибка сохранения');
+            }
+        });
+
+        async function activatePremium() {
+            if (!confirm('Активировать PREMIUM подписку за 499 ₽ на 30 дней? (Демо-режим, деньги не спишутся)')) return;
+            const user = JSON.parse(localStorage.getItem('user'));
+            
+            try {
+                const res = await fetch('/api/subscription/activate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user.telegram_id, type: 'premium', days: 30, amount: 499 })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('✅ PREMIUM активирован! Ваш бизнес теперь в топе.');
+                    location.reload();
+                }
+            } catch (err) {
+                alert('❌ Ошибка');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Бизнес-профиль</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-top">
+                <a href="business-list.html" style="text-decoration: none; color: var(--accent-blue); font-size: 16px;">← К списку</a>
+            </div>
+        </header>
+
+        <div id="business-profile-container">
+            <!-- Загрузится через JS -->
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="index.html" class="nav-item"><div class="nav-icon">🏠</div><div class="nav-label">Главная</div></a>
+        <a href="free.html" class="nav-item"><div class="nav-icon">🎁</div><div class="nav-label">Даром</div></a>
+        <a href="business-list.html" class="nav-item active"><div class="nav-icon">🏢</div><div class="nav-label">Бизнес</div></a>
+        <a href="chats.html" class="nav-item"><div class="nav-icon">💬</div><div class="nav-label">Чаты</div></a>
+        <a href="my-listings.html" class="nav-item"><div class="nav-icon">📋</div><div class="nav-label">Мои</div></a>
+    </nav>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userId = new URLSearchParams(window.location.search).get('userId');
+            const container = document.getElementById('business-profile-container');
+            
+            if (!userId) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-title">ID пользователя не указан</div></div>';
+                return;
+            }
+
+            try {
+                // 1. Загружаем профиль
+                const profileRes = await fetch(`/api/business/profile/${userId}`);
+                
+                // ЕСЛИ ПРОФИЛЯ НЕТ - показываем красивое сообщение
+                if (!profileRes.ok) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">🏢</div>
+                            <div class="empty-title">Этот бизнес-профиль еще не создан</div>
+                            <div class="empty-text">Пользователь пока не оформил свою витрину.<br>Хотите создать свою?</div>
+                            <a href="create-business.html" class="btn btn-primary" style="margin-top: 20px; display: inline-block; width: auto; padding: 12px 24px;">
+                                🏪 Создать свой магазин
+                            </a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const profile = await profileRes.json();
+
+                // 2. Загружаем услуги
+                const servicesRes = await fetch(`/api/business/services/${userId}`);
+                const services = await servicesRes.json();
+
+                const isPremium = profile.is_premium === 1 && new Date(profile.premium_until) > new Date();
+
+                // 3. Рендерим профиль
+                container.innerHTML = `
+                    <div class="business-header">
+                        ${isPremium ? '<div class="premium-badge">⭐ PREMIUM</div>' : ''}
+                        <div class="business-logo">
+                            ${profile.logo_filename ? `<img src="/uploads/${profile.logo_filename}" alt="Logo">` : '🏢'}
+                        </div>
+                        <div class="business-name">${profile.business_name}</div>
+                        <div class="business-category">${profile.category || 'Бизнес'} • ⭐ ${profile.rating || 5} (${profile.total_reviews || 0} отзывов)</div>
+                        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin-top: 8px;">${profile.description || 'Описание не указано'}</p>
+                        
+                        <div class="business-actions">
+                            ${profile.phone ? `<a href="tel:${profile.phone}" class="btn btn-primary">📞 Позвонить</a>` : ''}
+                            <button class="btn btn-secondary" onclick="startChatWithBusiness('${userId}')">💬 Написать</button>
+                        </div>
+                        ${profile.address ? `<div style="margin-top: 12px; font-size: 13px; color: var(--text-secondary);">📍 ${profile.address}</div>` : ''}
+                    </div>
+
+                    <div class="services-section">
+                        <h2 class="section-title">Услуги и товары</h2>
+                        ${services.length === 0 ? '<p style="color: var(--text-secondary); font-size: 14px;">Пока нет добавленных услуг</p>' : 
+                          services.map(s => `
+                            <div class="service-card">
+                                <div>
+                                    <div class="service-name">${s.name}</div>
+                                    ${s.description ? `<div class="service-desc">${s.description}</div>` : ''}
+                                </div>
+                                <div class="service-price">${s.price > 0 ? s.price + ' ₽' : 'Договорная'}</div>
+                            </div>
+                          `).join('')}
+                    </div>
+
+                    <div class="services-section">
+                        <h2 class="section-title">Объявления компании</h2>
+                        <div id="business-listings-container">
+                            <p style="color: var(--text-secondary); font-size: 14px;">Загрузка объявлений...</p>
+                        </div>
+                    </div>
+                `;
+
+                // 4. Загружаем бизнес-объявления
+                try {
+                    const listingsRes = await fetch(`/api/business/listings/${userId}`);
+                    const listings = await listingsRes.json();
+                    
+                    const listingsContainer = document.getElementById('business-listings-container');
+                    
+                    if (listings.length === 0) {
+                        listingsContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">Пока нет объявлений в витрине</p>';
+                    } else {
+                        listingsContainer.innerHTML = `<div class="listings-grid">` + listings.map(listing => {
+                            const isFree = listing.price === 0;
+                            return `
+                                <a href="listing.html?id=${listing.id}" class="listing-card" style="position: relative; border: ${isFree ? '2px solid #4caf50' : 'none'}">
+                                    ${isFree ? '<div class="free-badge">БЕСПЛАТНО</div>' : ''}
+                                    <div class="listing-image">
+                                        ${listing.main_image ? `<img src="/uploads/${listing.main_image}" alt="${listing.title}">` : listing.category_icon || '📦'}
+                                    </div>
+                                    <div class="listing-info">
+                                        <div class="listing-title">${listing.title}</div>
+                                        <div class="listing-price" style="${isFree ? 'color: #4caf50; font-weight: 700;' : ''}">${isFree ? 'Отдам даром' : formatPrice(listing.price)}</div>
+                                    </div>
+                                </a>
+                            `;
+                        }).join('') + `</div>`;
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки объявлений бизнеса:', error);
+                }
+
+            } catch (error) {
+                console.error('Ошибка загрузки профиля:', error);
+                container.innerHTML = '<div class="empty-state"><div class="empty-title">Ошибка загрузки данных</div></div>';
+            }
+        });
+
+        function startChatWithBusiness(sellerId) {
+            alert('Функция чата с бизнесом работает так же, как с обычным продавцом! (Переход в чат)');
+            // В реальной версии здесь будет вызов contactSeller()
+        }
+    </script>
+</body>
+</html>

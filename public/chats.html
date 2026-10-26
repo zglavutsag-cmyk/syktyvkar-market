@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мои чаты</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- ШАПКА -->
+        <header class="header">
+            <div class="header-top">
+                <a href="index.html" style="text-decoration: none; color: var(--accent-blue); font-size: 16px;">
+                    ← Назад
+                </a>
+                <div class="user-info">
+                    <span id="user-name">Гость</span>
+                </div>
+            </div>
+            <h1 style="font-size: 24px; font-weight: 700; margin-top: 12px;">💬 Мои чаты</h1>
+        </header>
+
+        <!-- СПИСОК ЧАТОВ -->
+        <div id="chats-list" class="chats-container">
+            <!-- Загрузится через JS -->
+        </div>
+    </div>
+
+    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
+    <nav class="bottom-nav">
+        <a href="index.html" class="nav-item">
+            <div class="nav-icon">🏠</div>
+            <div class="nav-label">Главная</div>
+        </a>
+        <a href="favorites.html" class="nav-item">
+            <div class="nav-icon">❤️</div>
+            <div class="nav-label">Избранное</div>
+        </a>
+        <a href="chats.html" class="nav-item active">
+            <div class="nav-icon">💬</div>
+            <div class="nav-label">Чаты</div>
+        </a>
+        <a href="create.html" class="nav-item">
+            <div class="nav-icon">➕</div>
+            <div class="nav-label">Создать</div>
+        </a>
+        <a href="my-listings.html" class="nav-item">
+            <div class="nav-icon">📋</div>
+            <div class="nav-label">Мои</div>
+        </a>
+    </nav>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
