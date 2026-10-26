@@ -2,181 +2,127 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Создать объявление</title>
-    <link rel="stylesheet" href="css/style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        body { background: #f5f5f7; color: #1c1c1e; padding-bottom: 80px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px; display: flex; align-items: center; gap: 15px; }
+        .back-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; text-decoration: none; }
+        .header h1 { font-size: 18px; font-weight: 700; }
+        .form-container { max-width: 600px; margin: 20px auto; background: white; padding: 20px; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #555; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px; border: 1px solid #e0e0e0; border-radius: 10px; font-size: 16px; outline: none; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #667eea; }
+        .form-group textarea { min-height: 120px; resize: vertical; }
+        .submit-btn { width: 100%; padding: 15px; background: #667eea; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; }
+        .submit-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+        .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+        .file-input-label { display: block; padding: 12px; border: 2px dashed #ccc; border-radius: 10px; text-align: center; color: #666; cursor: pointer; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <!-- ШАПКА -->
-        <header class="header">
-            <div class="header-top">
-                <a href="index.html" style="text-decoration: none; color: var(--accent-blue); font-size: 16px;">
-                    ← Назад
-                </a>
-                <div class="user-info">
-                    <span id="user-name">Гость</span>
-                </div>
-            </div>
-            <h1 style="font-size: 24px; font-weight: 700; margin-top: 12px;">Новое объявление</h1>
-        </header>
 
-        <!-- ФОРМА -->
-        <form id="create-form" class="form-section" enctype="multipart/form-data">
-            <!-- КАТЕГОРИЯ -->
-            <div class="form-group">
-                <label class="form-label">Категория *</label>
-                <select id="category-select" name="categoryId" class="form-select" required>
-                    <!-- Загрузится через JS -->
-                </select>
-            </div>
+<div class="header">
+    <a class="back-btn" href="/index.html">←</a>
+    <h1>Новое объявление</h1>
+</div>
 
-            <!-- ЗАГОЛОВОК -->
-            <div class="form-group">
-                <label class="form-label">Заголовок *</label>
-                <input type="text" name="title" class="form-input" placeholder="Например: iPhone 13 Pro Max 256GB" required maxlength="100">
-                <div class="form-hint">Кратко и понятно опишите товар</div>
+<div class="form-container">
+    <form id="createForm">
+        <div class="form-group">
+            <label>Название *</label>
+            <input type="text" id="title" required placeholder="Например: iPhone 13">
+        </div>
+        <div class="form-group">
+            <label>Категория *</label>
+            <select id="category" required></select>
+        </div>
+        <div class="form-group">
+            <label>Цена (₽) *</label>
+            <input type="number" id="price" required placeholder="0 для 'Отдам даром'">
+        </div>
+        <div class="form-group">
+            <label>Описание</label>
+            <textarea id="description" placeholder="Опишите состояние, характеристики..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>Город</label>
+            <input type="text" id="city" value="Сыктывкар">
+        </div>
+        <div class="form-group">
+            <label>Фотографии</label>
+            <div class="file-input-wrapper">
+                <div class="file-input-label">📷 Нажмите, чтобы выбрать фото</div>
+                <input type="file" id="images" accept="image/*" multiple>
             </div>
+        </div>
+        <button type="submit" class="submit-btn" id="submitBtn">Опубликовать</button>
+    </form>
+</div>
 
-            <!-- ОПИСАНИЕ -->
-            <div class="form-group">
-                <label class="form-label">Описание</label>
-                <textarea name="description" class="form-textarea" placeholder="Расскажите подробнее о товаре: состояние, комплектация, причина продажи..." maxlength="2000"></textarea>
-            </div>
+<script>
+// Берем реальные данные пользователя из localStorage
+const currentUserId = localStorage.getItem('telegramId') || 'user_' + Date.now();
+const userName = localStorage.getItem('userName') || 'Гость';
 
-            <!-- ЦЕНА -->
-            <div class="form-group">
-                <label class="form-label">Цена (₽)</label>
-                <input type="number" name="price" class="form-input" placeholder="0" min="0" max="999999999">
-                <div class="form-hint">Оставьте 0 или пустым, если цена договорная</div>
-            </div>
-
-            <!-- АДРЕС -->
-            <div class="form-group">
-                <label class="form-label">Адрес (необязательно)</label>
-                <input type="text" name="address" class="form-input" placeholder="Улица, дом">
-                <div class="form-hint">Где можно посмотреть товар</div>
-            </div>
-
-            <!-- ФОТО -->
-            <div class="form-group">
-                <label class="form-label">Фото (до 5 штук)</label>
-                <div class="photo-upload" id="photo-upload">
-                    <label class="photo-upload-item" for="photo-input">
-                        <div class="photo-upload-icon">📷</div>
-                        <div class="photo-upload-label">Добавить</div>
-                    </label>
-                </div>
-                <input type="file" id="photo-input" name="images" accept="image/*" multiple style="display: none;">
-                <div class="form-hint">JPG, PNG или WEBP, макс. 5 MB каждое</div>
-            </div>
-
-            <!-- КНОПКА -->
-            <!-- ЧЕКБОКС: РАЗМЕСТИТЬ В БИЗНЕС-ВИТРИНЕ -->
-            <div class="form-group" id="business-checkbox-group" style="display: none;">
-                <label style="display: flex; align-items: center; gap: 12px; padding: 16px; background: linear-gradient(135deg, #fffdf0, #fff); border: 2px solid #ffd700; border-radius: var(--radius-md); cursor: pointer;">
-                    <input type="checkbox" name="isBusiness" id="isBusiness" value="1" style="width: 24px; height: 24px; accent-color: #ffd700;">
-                    <div>
-                        <div style="font-weight: 700; color: var(--text-primary);">🏪 Разместить в моей бизнес-витрине</div>
-                        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Объявление появится на странице вашего магазина</div>
-                    </div>
-                </label>
-            </div>
-            <button type="submit" class="btn btn-primary">
-                Опубликовать объявление
-            </button>
-        </form>
-    </div>
-
-    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
-        <nav class="bottom-nav">
-        <a href="index.html" class="nav-item">
-            <div class="nav-icon">🏠</div>
-            <div class="nav-label">Главная</div>
-        </a>
-        <a href="favorites.html" class="nav-item">
-            <div class="nav-icon">❤️</div>
-            <div class="nav-label">Избранное</div>
-        </a>
-        <a href="chats.html" class="nav-item">
-            <div class="nav-icon" style="position: relative;">
-                💬
-                <span id="unread-badge" style="display: none; position: absolute; top: -6px; right: -10px; background: #f44336; color: white; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; align-items: center; justify-content: center; padding: 0 4px;">0</span>
-            </div>
-            <div class="nav-label">Чаты</div>
-        </a>
-        <a href="create.html" class="nav-item active">
-            <div class="nav-icon">➕</div>
-            <div class="nav-label">Создать</div>
-        </a>
-        <a href="my-listings.html" class="nav-item">
-            <div class="nav-icon">📋</div>
-            <div class="nav-label">Мои</div>
-        </a>
-    </nav>
-
-    <script src="js/app.js"></script>
-    <script>
-        // Обновляем имя пользователя в шапке
-        document.addEventListener('DOMContentLoaded', () => {
-            const user = JSON.parse(localStorage.getItem('user'));
-            if (user && user.first_name) {
-                document.getElementById('user-name').textContent = user.first_name;
-            }
+// Загрузка категорий
+async function loadCategories() {
+    try {
+        const res = await fetch('/api/categories');
+        const cats = await res.json();
+        const select = document.getElementById('category');
+        cats.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.icon} ${c.name}`;
+            select.appendChild(opt);
         });
+    } catch (e) { console.error(e); }
+}
 
-        // Обработка загрузки фото
-        const photoInput = document.getElementById('photo-input');
-        const photoUpload = document.getElementById('photo-upload');
-        let uploadedPhotos = [];
+document.getElementById('createForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Публикация...';
 
-        photoInput.addEventListener('change', (e) => {
-            const files = Array.from(e.target.files);
-            
-            // Ограничиваем до 5 фото
-            if (uploadedPhotos.length + files.length > 5) {
-                alert('Можно загрузить максимум 5 фото');
-                return;
-            }
+    const formData = new FormData();
+    formData.append('telegramId', currentUserId);
+    formData.append('username', userName);
+    formData.append('firstName', userName);
+    formData.append('categoryId', document.getElementById('category').value);
+    formData.append('title', document.getElementById('title').value);
+    formData.append('price', document.getElementById('price').value);
+    formData.append('description', document.getElementById('description').value);
+    formData.append('city', document.getElementById('city').value);
 
-            files.forEach(file => {
-                if (file.size > 5 * 1024 * 1024) {
-                    alert(`Файл ${file.name} слишком большой (макс. 5 MB)`);
-                    return;
-                }
+    const files = document.getElementById('images').files;
+    for (let i = 0; i < files.length; i++) {
+        formData.append('images', files[i]);
+    }
 
-                uploadedPhotos.push(file);
-                
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const photoItem = document.createElement('label');
-                    photoItem.className = 'photo-upload-item';
-                    photoItem.innerHTML = `<img src="${event.target.result}" alt="Фото">`;
-                    photoUpload.appendChild(photoItem);
-                };
-                reader.readAsDataURL(file);
-            });
+    try {
+        const res = await fetch('/api/listings', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            alert('✅ Объявление успешно опубликовано!');
+            window.location.href = '/index.html';
+        } else {
+            alert('❌ Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+            btn.disabled = false;
+            btn.textContent = 'Опубликовать';
+        }
+    } catch (e) {
+        alert('❌ Ошибка сети');
+        btn.disabled = false;
+        btn.textContent = 'Опубликовать';
+    }
+});
 
-            // Обновляем input для отправки формы
-            const dataTransfer = new DataTransfer();
-            uploadedPhotos.forEach(file => dataTransfer.items.add(file));
-            photoInput.files = dataTransfer.files;
-        });
-        // Проверяем, есть ли у пользователя бизнес-профиль
-        document.addEventListener('DOMContentLoaded', async () => {
-            const user = JSON.parse(localStorage.getItem('user'));
-            if (user) {
-                try {
-                    const response = await fetch(`/api/business/profile/${user.telegram_id}`);
-                    if (response.ok) {
-                        // У пользователя есть бизнес-профиль, показываем чекбокс
-                        document.getElementById('business-checkbox-group').style.display = 'block';
-                    }
-                } catch (error) {
-                    console.log('Бизнес-профиль не найден');
-                }
-            }
-        });
-    </script>
+loadCategories();
+</script>
 </body>
 </html>
