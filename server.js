@@ -234,6 +234,69 @@ app.post('/api/admin/users/:userId/block', (req, res) => {
     db.prepare('UPDATE listings SET status = ? WHERE user_id = ?').run('hidden', req.params.userId);
     res.json({ success: true });
 });
+// ==========================================
+// ФУНКЦИЯ ОТПРАВКИ УВЕДОМЛЕНИЯ В MAX БОТ
+// ==========================================
+async function sendMaxNotification(telegramId, text) {
+    // ⚠️ ЗАМЕНИ ЭТОТ URL и ТОКЕН на реальные данные из платформы разработчиков MAX!
+    const MAX_BOT_TOKEN = 'ТВОЙ_ТОКЕН_БОТА_MAX'; 
+    const MAX_API_URL = `https://api.max.ru/v1/bot/${MAX_BOT_TOKEN}/sendMessage`; // Примерный URL, уточни в документации MAX
+
+    try {
+        await fetch(MAX_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: telegramId,
+                text: text,
+                parse_mode: 'HTML'
+            })
+        });
+        console.log(`✅ Уведомление отправлено пользователю ${telegramId}`);
+    } catch (error) {
+        console.error('❌ Ошибка отправки в MAX:', error.message);
+    }
+}
+
+// ==========================================
+// API РОУТЫ УВЕДОМЛЕНИЙ
+// ==========================================
+
+// Получить уведомления и счётчик непрочитанных
+app.get('/api/notifications', (req, res) => {
+    const { userId } = req.query;
+    const unreadCount = db.prepare('SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0').get(userId)?.count || 0;
+    const notifications = db.prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 20').all(userId);
+    res.json({ unreadCount, notifications });
+});
+
+// Создать уведомление (вызывается при новом сообщении, отзыве и т.д.)
+app.post('/api/notifications', async (req, res) => {
+    const { userId, type, message, sendToBot } = req.body;
+    
+    // 1. Сохраняем в базу
+    db.prepare('INSERT INTO notifications (user_id, type, message) VALUES (?, ?, ?)').run(userId, type, message);
+    
+    // 2. Если нужно, отправляем пуш в мессенджер MAX
+    if (sendToBot) {
+        await sendMaxNotification(userId, `🔔 <b>Сыктывкар Барахолка</b>\n\n${message}`);
+    }
+    
+    res.json({ success: true });
+});
+
+// Отметить уведомление как прочитанное
+app.put('/api/notifications/:id/read', (req, res) => {
+    db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(req.params.id);
+    res.json({ success: true });
+});
+
+// Отметить ВСЕ уведомления пользователя как прочитанные
+app.put('/api/notifications/read-all', (req, res) => {
+    const { userId } = req.body;
+    db.prepare('UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0').run(userId);
+    res.json({ success: true });
+});
 
 // ==========================================
 // 4. ЗАПУСК СЕРВЕРА
