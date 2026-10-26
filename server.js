@@ -40,6 +40,14 @@ db.exec(`
     CREATE TABLE IF NOT EXISTS categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, icon TEXT NOT NULL
     );
+        CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        message TEXT NOT NULL,
+        is_read INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
     CREATE TABLE IF NOT EXISTS listings (
         id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, category_id INTEGER NOT NULL,
         title TEXT NOT NULL, description TEXT, price INTEGER DEFAULT 0, city TEXT DEFAULT 'Сыктывкар',
