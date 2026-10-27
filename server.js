@@ -19,7 +19,7 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// 1. БАЗА ДАННЫХ (в папке /tmp, где есть права на запись)
+// 1. БАЗА ДАННЫХ (в /tmp, где есть права на запись)
 // ==========================================
 const dbPath = '/tmp/market.db';
 const db = new Database(dbPath);
@@ -27,14 +27,67 @@ db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
 db.exec(`
-    CREATE TABLE IF NOT EXISTS users (telegram_id TEXT PRIMARY KEY, username TEXT, first_name TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, icon TEXT NOT NULL);
-    CREATE TABLE IF NOT EXISTS listings (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, category_id INTEGER NOT NULL, title TEXT NOT NULL, description TEXT, price INTEGER DEFAULT 0, city TEXT DEFAULT 'Сыктывкар', address TEXT, status TEXT DEFAULT 'active', views INTEGER DEFAULT 0, is_vip INTEGER DEFAULT 0, is_business INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS images (id INTEGER PRIMARY KEY AUTOINCREMENT, listing_id INTEGER NOT NULL, filename TEXT NOT NULL, sort_order INTEGER DEFAULT 0);
-    CREATE TABLE IF NOT EXISTS chats (id INTEGER PRIMARY KEY AUTOINCREMENT, buyer_id TEXT NOT NULL, seller_id TEXT NOT NULL, listing_id INTEGER NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, chat_id INTEGER NOT NULL, sender_id TEXT NOT NULL, text TEXT NOT NULL, is_read INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, type TEXT NOT NULL, message TEXT NOT NULL, is_read INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-    CREATE TABLE IF NOT EXISTS favorites (user_id TEXT NOT NULL, listing_id INTEGER NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(user_id, listing_id));
+    CREATE TABLE IF NOT EXISTS users (
+        telegram_id TEXT PRIMARY KEY, 
+        username TEXT, 
+        first_name TEXT, 
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        name TEXT NOT NULL, 
+        icon TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS listings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        user_id TEXT NOT NULL, 
+        category_id INTEGER NOT NULL, 
+        title TEXT NOT NULL, 
+        description TEXT, 
+        price INTEGER DEFAULT 0, 
+        city TEXT DEFAULT 'Сыктывкар', 
+        address TEXT, 
+        status TEXT DEFAULT 'active', 
+        views INTEGER DEFAULT 0, 
+        is_vip INTEGER DEFAULT 0, 
+        is_business INTEGER DEFAULT 0, 
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS images (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        listing_id INTEGER NOT NULL, 
+        filename TEXT NOT NULL, 
+        sort_order INTEGER DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS chats (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        buyer_id TEXT NOT NULL, 
+        seller_id TEXT NOT NULL, 
+        listing_id INTEGER NOT NULL, 
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        chat_id INTEGER NOT NULL, 
+        sender_id TEXT NOT NULL, 
+        text TEXT NOT NULL, 
+        is_read INTEGER DEFAULT 0, 
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        user_id TEXT NOT NULL, 
+        type TEXT NOT NULL, 
+        message TEXT NOT NULL, 
+        is_read INTEGER DEFAULT 0, 
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS favorites (
+        user_id TEXT NOT NULL, 
+        listing_id INTEGER NOT NULL, 
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
+        PRIMARY KEY(user_id, listing_id)
+    );
 `);
 
 // Индексы для скорости
@@ -44,13 +97,14 @@ db.exec(`
     CREATE INDEX IF NOT EXISTS idx_listings_user ON listings(user_id);
     CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
     CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(chat_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id);
 `);
 
 // Заполнение категорий
 const catCount = db.prepare('SELECT COUNT(*) as count FROM categories').get().count;
 if (catCount === 0) {
     db.exec(`INSERT INTO categories (name, icon) VALUES 
-        ('Недвижимость', '🏠'), ('Транспорт', '🚗'), ('Работа', '💼'), 
+        ('Недвижимость', '🏠'), ('Транспорт', '🚗'), ('Работа', ''), 
         ('Услуги', '🛠️'), ('Личные вещи', '👕'), ('Для дома', '🪑'), 
         ('Электроника', '📱'), ('Хобби', '🎸'), ('Животные', '🐾'), ('Даром', '🎁')`);
 }
@@ -122,7 +176,7 @@ app.delete('/api/listings/:id', (req, res) => {
 });
 
 // ==========================================
-// 3. ЧАТЫ И СООБЩЕНИЯ (ИСПРАВЛЕННЫЕ)
+// 3. ЧАТЫ И СООБЩЕНИЯ
 // ==========================================
 app.post('/api/chats', (req, res) => {
     const { buyerId, sellerId, listingId } = req.body;
@@ -149,7 +203,6 @@ app.get('/api/chats', (req, res) => {
     res.json(db.prepare(query).all(telegramId, telegramId, telegramId));
 });
 
-// ИСПРАВЛЕННЫЙ РОУТ: теперь гарантированно возвращает chat с listing_id
 app.get('/api/chats/:id/messages', (req, res) => {
     const chatId = req.params.id;
     const telegramId = req.query.telegramId;
@@ -174,19 +227,34 @@ app.post('/api/chats/:id/messages', (req, res) => {
     const chatId = req.params.id;
     const { telegramId, text } = req.body;
     
+    if (!telegramId || !text) {
+        return res.status(400).json({ error: 'Не указан отправитель или текст' });
+    }
+
     db.prepare('INSERT INTO messages (chat_id, sender_id, text) VALUES (?, ?, ?)').run(chatId, telegramId, text);
-    
+
     const chat = db.prepare('SELECT buyer_id, seller_id, listing_id FROM chats WHERE id = ?').get(chatId);
+    if (!chat) return res.status(404).json({ error: 'Чат не найден' });
+
     const receiverId = chat.buyer_id === telegramId ? chat.seller_id : chat.buyer_id;
+
+    console.log(`[💬 ЧАТ] Отправитель: ${telegramId} | Получатель: ${receiverId}`);
+    console.log(`[💬 ЧАТ] Данные чата: buyer=${chat.buyer_id}, seller=${chat.seller_id}`);
+    
+    if (receiverId === telegramId) {
+        console.error(`[❌ ОШИБКА ЧАТА] Отправитель и получатель совпадают! ID: ${telegramId}`);
+    }
+
     const listing = db.prepare('SELECT title FROM listings WHERE id = ?').get(chat.listing_id);
-    
     const notifText = `Новое сообщение по объявлению "${listing?.title || 'товару'}"`;
-    db.prepare('INSERT INTO notifications (user_id, type, message) VALUES (?, ?, ?)').run(receiverId, 'message', notifText);
     
+    if (receiverId !== telegramId) {
+        db.prepare('INSERT INTO notifications (user_id, type, message) VALUES (?, ?, ?)').run(receiverId, 'message', notifText);
+    }
+
     res.json({ success: true });
 });
 
-// ИСПРАВЛЕННЫЙ РОУТ: убирает ошибку 404
 app.get('/api/unread-count', (req, res) => {
     const { telegramId } = req.query;
     if (!telegramId) return res.json({ count: 0 });
@@ -199,7 +267,26 @@ app.get('/api/unread-count', (req, res) => {
 });
 
 // ==========================================
-// 4. УВЕДОМЛЕНИЯ
+// 4. ИЗБРАННОЕ
+// ==========================================
+app.post('/api/favorites', (req, res) => {
+    const { telegramId, listingId } = req.body;
+    try {
+        db.prepare('INSERT INTO favorites (user_id, listing_id) VALUES (?, ?)').run(telegramId, listingId);
+        res.json({ success: true });
+    } catch (e) {
+        res.json({ success: false, message: 'Уже в избранном' });
+    }
+});
+
+app.get('/api/favorites', (req, res) => {
+    const { telegramId } = req.query;
+    const query = `SELECT l.*, c.icon as category_icon, (SELECT filename FROM images WHERE listing_id = l.id ORDER BY sort_order LIMIT 1) as main_image FROM listings l JOIN favorites f ON l.id = f.listing_id LEFT JOIN categories c ON l.category_id = c.id WHERE f.user_id = ? ORDER BY f.created_at DESC`;
+    res.json(db.prepare(query).all(telegramId));
+});
+
+// ==========================================
+// 5. УВЕДОМЛЕНИЯ
 // ==========================================
 app.get('/api/notifications', (req, res) => {
     const unreadCount = db.prepare('SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0').get(req.query.userId)?.count || 0;
@@ -213,7 +300,7 @@ app.put('/api/notifications/read-all', (req, res) => {
 });
 
 // ==========================================
-// 5. АДМИН-ПАНЕЛЬ API
+// 6. АДМИН-ПАНЕЛЬ API
 // ==========================================
 app.get('/api/admin/stats', (req, res) => {
     res.json({
@@ -227,8 +314,8 @@ app.put('/api/admin/listings/:id/status', (req, res) => { db.prepare('UPDATE lis
 app.delete('/api/admin/listings/:id', (req, res) => { db.prepare('DELETE FROM listings WHERE id = ?').run(req.params.id); res.json({ success: true }); });
 
 // ==========================================
-// 6. ЗАПУСК
+// 7. ЗАПУСК
 // ==========================================
 app.listen(PORT, HOST, () => {
-    console.log(`🏙️ Маркетплейс Сыктывкар запущен на http://${HOST}:${PORT}`);
+    console.log(`️ Маркетплейс Сыктывкар запущен на http://${HOST}:${PORT}`);
 });
