@@ -9,18 +9,23 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Кэш статики на 1 час
+app.use(express.static(path.join(__dirname, 'public'), {
+    maxAge: '1h',
+    etag: true,
+    lastModified: true
+}));
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ==========================================
-// 1. БАЗА ДАННЫХ (в /tmp — там всегда есть права)
+// 1. БАЗА ДАННЫХ
 // ==========================================
 const dbPath = '/tmp/market.db';
 const db = new Database(dbPath);
@@ -38,7 +43,8 @@ db.exec(`
     CREATE TABLE IF NOT EXISTS listings (
         id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, category_id INTEGER NOT NULL,
         title TEXT NOT NULL, description TEXT, price INTEGER DEFAULT 0, 
-        city TEXT DEFAULT 'Сыктывкар', address TEXT, status TEXT DEFAULT 'active', 
+        city TEXT DEFAULT 'Сыктывкар', address TEXT, 
+        status TEXT DEFAULT 'pending', 
         views INTEGER DEFAULT 0, is_vip INTEGER DEFAULT 0, is_business INTEGER DEFAULT 0, 
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -81,7 +87,7 @@ db.exec(`
     );
 `);
 
-// Индексы для скорости
+// Индексы
 db.exec(`
     CREATE INDEX IF NOT EXISTS idx_listings_status ON listings(status);
     CREATE INDEX IF NOT EXISTS idx_listings_category ON listings(category_id);
@@ -96,7 +102,7 @@ db.exec(`
     CREATE INDEX IF NOT EXISTS idx_chats_seller ON chats(seller_id);
 `);
 
-// Заполнение категорий по умолчанию
+// Категории по умолчанию
 const catCount = db.prepare('SELECT COUNT(*) as count FROM categories').get().count;
 if (catCount === 0) {
     db.exec(`INSERT INTO categories (name, icon) VALUES 
@@ -106,7 +112,6 @@ if (catCount === 0) {
         ('Даром', '🎁')`);
 }
 
-// Helper: создать пользователя, если нет
 function getOrCreateUser(telegramId, username, firstName) {
     const user = db.prepare('SELECT * FROM users WHERE telegram_id = ?').get(telegramId);
     if (!user) {
@@ -115,7 +120,7 @@ function getOrCreateUser(telegramId, username, firstName) {
     }
 }
 
-// Настройка Multer для загрузки фото
+// Загрузка фото
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
@@ -126,7 +131,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // ==========================================
-// 2. ФУНКЦИЯ ОТПРАВКИ УВЕДОМЛЕНИЙ В MAX
+// 2. УВЕДОМЛЕНИЯ В MAX
 // ==========================================
 async function sendMaxNotification(telegramId, text) {
     const MAX_BOT_TOKEN = process.env.MAX_BOT_TOKEN || 'ТВОЙ_ТОКЕН_БОТА_MAX';
@@ -138,7 +143,6 @@ async function sendMaxNotification(telegramId, text) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chat_id: telegramId, text: text, parse_mode: 'HTML' })
         });
-        console.log(`✅ Уведомление отправлено: ${telegramId}`);
     } catch (error) {
         console.error('❌ Ошибка отправки в MAX:', error.message);
     }
@@ -152,10 +156,12 @@ app.get('/api/categories', (req, res) => {
 });
 
 // ==========================================
-// 4. ОБЪЯВЛЕНИЯ
+// 4. ОБЪЯВЛЕНИЯ (МОДЕРАЦИЯ)
 // ==========================================
+
+// Публичная лента — только одобренные
 app.get('/api/listings', (req, res) => {
-    const { city, category, search } = req.query;
+    const { city, category, search, limit } = req.query;
     let query = `SELECT l.*, c.name as category_name, c.icon as category_icon, 
         (SELECT filename FROM images WHERE listing_id = l.id ORDER BY sort_order LIMIT 1) as main_image 
         FROM listings l LEFT JOIN categories c ON l.category_id = c.id 
@@ -164,10 +170,12 @@ app.get('/api/listings', (req, res) => {
     if (city) { query += ' AND l.city = ?'; params.push(city); }
     if (category) { query += ' AND l.category_id = ?'; params.push(category); }
     if (search) { query += ' AND l.title LIKE ?'; params.push(`%${search}%`); }
-    query += ' ORDER BY l.is_vip DESC, l.created_at DESC LIMIT 50';
+    query += ' ORDER BY l.is_vip DESC, l.created_at DESC LIMIT ?';
+    params.push(parseInt(limit) || 20);
     res.json(db.prepare(query).all(...params));
 });
 
+// Бесплатные — только одобренные
 app.get('/api/free-stuff', (req, res) => {
     const { city, search } = req.query;
     let query = `SELECT l.*, c.name as category_name, c.icon as category_icon, 
@@ -181,15 +189,17 @@ app.get('/api/free-stuff', (req, res) => {
     res.json(db.prepare(query).all(...params));
 });
 
+// Создание объявления (статус pending — на модерации!)
 app.post('/api/listings', upload.array('images', 5), (req, res) => {
     const { telegramId, categoryId, title, description, price, city, address, isBusiness, username, firstName } = req.body;
     if (!telegramId || !categoryId || !title) return res.status(400).json({ error: 'Заполните обязательные поля' });
     
     getOrCreateUser(telegramId, username, firstName);
     
+    // ВАЖНО: статус 'pending' — объявление ждёт модерации!
     const result = db.prepare(`
-        INSERT INTO listings (user_id, category_id, title, description, price, city, address, is_business) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO listings (user_id, category_id, title, description, price, city, address, is_business, status) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     `).run(telegramId, categoryId, title, description, price || 0, city || 'Сыктывкар', address, isBusiness === '1' ? 1 : 0);
     
     const listingId = result.lastInsertRowid;
@@ -197,9 +207,16 @@ app.post('/api/listings', upload.array('images', 5), (req, res) => {
         const insertImg = db.prepare('INSERT INTO images (listing_id, filename, sort_order) VALUES (?, ?, ?)');
         req.files.forEach((file, index) => insertImg.run(listingId, file.filename, index));
     }
-    res.json({ success: true, listingId });
+    
+    // Уведомление админу о новом объявлении на модерации
+    const adminId = 'max_219641344';
+    db.prepare('INSERT INTO notifications (user_id, type, message) VALUES (?, ?, ?)')
+        .run(adminId, 'moderation', `Новое объявление на модерации: "${title}"`);
+    
+    res.json({ success: true, listingId, status: 'pending', message: 'Объявление отправлено на модерацию' });
 });
 
+// Одно объявление (можно смотреть и pending, если ты автор)
 app.get('/api/listings/:id', (req, res) => {
     db.prepare('UPDATE listings SET views = views + 1 WHERE id = ?').run(req.params.id);
     const listing = db.prepare(`
@@ -213,6 +230,7 @@ app.get('/api/listings/:id', (req, res) => {
     res.json(listing);
 });
 
+// Мои объявления (все статусы, чтобы видеть pending)
 app.get('/api/my-listings', (req, res) => {
     const { telegramId } = req.query;
     const query = `SELECT l.*, c.icon as category_icon, 
@@ -452,21 +470,72 @@ app.get('/api/business/listings/:userId', (req, res) => {
 });
 
 // ==========================================
-// 10. АДМИН-ПАНЕЛЬ API
+// 10. АДМИН-ПАНЕЛЬ API (С МОДЕРАЦИЕЙ)
 // ==========================================
 app.get('/api/admin/stats', (req, res) => {
     res.json({
         totalListings: db.prepare('SELECT COUNT(*) as count FROM listings').get().count,
         activeListings: db.prepare("SELECT COUNT(*) as count FROM listings WHERE status = 'active'").get().count,
+        pendingListings: db.prepare("SELECT COUNT(*) as count FROM listings WHERE status = 'pending'").get().count,
+        rejectedListings: db.prepare("SELECT COUNT(*) as count FROM listings WHERE status = 'rejected'").get().count,
         totalUsers: db.prepare('SELECT COUNT(*) as count FROM users').get().count,
         totalCategories: db.prepare('SELECT COUNT(*) as count FROM categories').get().count
     });
 });
 
-app.get('/api/admin/listings', (req, res) => {
-    res.json(db.prepare(`SELECT l.*, c.name as category_name FROM listings l LEFT JOIN categories c ON l.category_id = c.id ORDER BY l.created_at DESC`).all());
+// Объявления на модерации (pending)
+app.get('/api/admin/pending', (req, res) => {
+    const query = `SELECT l.*, c.name as category_name, u.first_name as user_name,
+        (SELECT filename FROM images WHERE listing_id = l.id ORDER BY sort_order LIMIT 1) as main_image
+        FROM listings l 
+        LEFT JOIN categories c ON l.category_id = c.id 
+        LEFT JOIN users u ON l.user_id = u.telegram_id
+        WHERE l.status = 'pending'
+        ORDER BY l.created_at DESC`;
+    res.json(db.prepare(query).all());
 });
 
+// Все объявления админу
+app.get('/api/admin/listings', (req, res) => {
+    const query = `SELECT l.*, c.name as category_name, u.first_name as user_name,
+        (SELECT filename FROM images WHERE listing_id = l.id ORDER BY sort_order LIMIT 1) as main_image
+        FROM listings l 
+        LEFT JOIN categories c ON l.category_id = c.id 
+        LEFT JOIN users u ON l.user_id = u.telegram_id
+        ORDER BY l.created_at DESC`;
+    res.json(db.prepare(query).all());
+});
+
+// ОДОБРИТЬ объявление (модерация)
+app.put('/api/admin/listings/:id/approve', (req, res) => {
+    const listing = db.prepare('SELECT * FROM listings WHERE id = ?').get(req.params.id);
+    if (listing) {
+        db.prepare("UPDATE listings SET status = 'active' WHERE id = ?").run(req.params.id);
+        
+        // Уведомление автору
+        const notifText = `✅ Ваше объявление "${listing.title}" одобрено и опубликовано!`;
+        db.prepare('INSERT INTO notifications (user_id, type, message) VALUES (?, ?, ?)')
+            .run(listing.user_id, 'approved', notifText);
+    }
+    res.json({ success: true });
+});
+
+// ОТКЛОНИТЬ объявление
+app.put('/api/admin/listings/:id/reject', (req, res) => {
+    const { reason } = req.body;
+    const listing = db.prepare('SELECT * FROM listings WHERE id = ?').get(req.params.id);
+    if (listing) {
+        db.prepare("UPDATE listings SET status = 'rejected' WHERE id = ?").run(req.params.id);
+        
+        const reasonText = reason ? `\nПричина: ${reason}` : '';
+        const notifText = `❌ Ваше объявление "${listing.title}" отклонено.${reasonText}`;
+        db.prepare('INSERT INTO notifications (user_id, type, message) VALUES (?, ?, ?)')
+            .run(listing.user_id, 'rejected', notifText);
+    }
+    res.json({ success: true });
+});
+
+// Изменить статус вручную
 app.put('/api/admin/listings/:id/status', (req, res) => {
     db.prepare('UPDATE listings SET status = ? WHERE id = ?').run(req.body.status, req.params.id);
     res.json({ success: true });
@@ -482,7 +551,7 @@ app.get('/api/admin/users', (req, res) => {
 });
 
 app.post('/api/admin/users/:userId/block', (req, res) => {
-    db.prepare('UPDATE listings SET status = ? WHERE user_id = ?').run('hidden', req.params.userId);
+    db.prepare("UPDATE listings SET status = 'hidden' WHERE user_id = ?").run(req.params.userId);
     res.json({ success: true });
 });
 
@@ -498,7 +567,7 @@ app.delete('/api/admin/categories/:id', (req, res) => {
 });
 
 // ==========================================
-// 11. ЗАПУСК СЕРВЕРА
+// 11. ЗАПУСК
 // ==========================================
 app.listen(PORT, HOST, () => {
     console.log(`🏙️ Маркетплейс Сыктывкар запущен на http://${HOST}:${PORT}`);
